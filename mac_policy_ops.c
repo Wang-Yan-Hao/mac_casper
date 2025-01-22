@@ -19,107 +19,97 @@
 #define CASPER_DNS_UID 1002
 #define RESOLV_CONF "/etc/resolv.conf"
 
+/* Label */
+struct mac_casper {
+    char label[20];
+};
+
+static int casper_slot;
+const char *casper_label = "casper";
+
+#define SLOT(l) ((struct mac_casper *)mac_label_get((l), casper_slot))
+#define SLOT_SET(l, val) mac_label_set((l), casper_slot, (uintptr_t)(val))
+
+/* UMA */
+#include <vm/uma.h>
+#include <vm/vm.h>
+static uma_zone_t	zone_casper;
+
 /* Funciton Implement Checker */
 
-// TODO set label
-// static int
-// casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp, struct label *label, int acc_mode)
-// {
-//     char *filename = NULL, *freebuf = NULL;
-//     int error;
-//
-//     // Check if the credentials are valid
-//     if (cred == NULL) {
-//         return 0;
-//     }
-//
-//     // Declare necessary buffer
-//     char *buffer = NULL;
-//     struct mac mac;  // Declare the mac structure for externalizing labels
-//
-//     // Allocate memory for the label buffer
-//     buffer = malloc(mac.m_buflen, M_MACTEMP, M_WAITOK | M_ZERO);
-//     if (buffer == NULL) {
-//         return ENOMEM; // Return error if malloc fails
-//     }
-//
-//     // Externalize the MAC label for credentials
-//     error = mac_cred_externalize_label(cred->cr_label, mac.m_string, buffer, mac.m_buflen);
-//     if (error) {
-//         free(buffer, M_MACTEMP);
-//         return error; // Return error if externalization fails
-//     }
-//
-//     // Check if the MAC label corresponds to "casper_dns"
-//     if (strcmp(mac.m_string, "casper_dns") == 0) {
-//         // Restrict access for CASPER_DNS_UID
-//         if (cred->cr_ruid == CASPER_DNS_UID) {
-//             error = vn_fullpath(vp, &filename, &freebuf);
-//
-//             // If we can't determine the path, allow access (fail-safe)
-//             if (error != 0 || filename == NULL) {
-//                 free(freebuf, M_TEMP);
-//                 free(buffer, M_MACTEMP);
-//                 return 0; // Allow access
-//             }
-//
-//             // Restrict access to specific files
-//             if (
-//                 strcmp(filename, "/etc/nsswitch.conf") != 0 &&
-//                 strcmp(filename, "/etc/hosts") != 0 &&
-//                 strcmp(filename, "/etc/resolv.conf") != 0 &&
-//                 strcmp(filename, "/etc/services") != 0
-//                 // && strncmp(filename, "/lib/", 5) != 0 &&
-//                 // strncmp(filename, "/usr/lib/", 9) != 0
-//             ) {
-//                 free(freebuf, M_TEMP);
-//                 free(buffer, M_MACTEMP);
-//                 return EACCES; // Deny access
-//             }
-//
-//             // Free the buffer if allocated
-//             free(freebuf, M_TEMP);
-//         }
-//     }
-//
-//     // Free the buffer used for externalizing the label
-//     free(buffer, M_MACTEMP);
-//
-//     return 0; // Allow other access
-// }
-
 /* bpfdsec */
-
 /* cred */
+static void
+casper_cred_relabel(struct ucred *cred, struct label *newlabel)
+{
+    printf("casper_cred_relabel start\n");
+    struct mac_casper *source, *dest;
+
+    source = SLOT(newlabel);
+    dest = SLOT(cred->cr_label);
+
+    if (source == NULL) {
+        printf("source is NULL\n");
+        return;
+    }
+
+    if (dest == NULL) {
+        // If dest is NULL, allocate memory for the label
+        dest = uma_zalloc(zone_casper, M_WAITOK);
+        if (dest == NULL) {
+            printf("Failed to allocate memory for dest\n");
+            return;
+        }
+        // Update the label using SLOT_SET to set it on cred
+        SLOT_SET(cred->cr_label, dest);
+    }
+
+    // Now perform the actual copy of the label content
+    *dest = *source; // Perform shallow copy since mac_casper has no dynamically allocated fields
+    printf("casper_cred_relabel success\n");
+    return;
+}
 static int
 casper_mpo_cred_check_relabel_t (struct ucred *cred, struct label *newlabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_cred_check_setaudit_t (struct ucred *cred, struct auditinfo *ai) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_cred_check_setaudit_addr_t (struct ucred *cred, struct auditinfo_addr *aia) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_cred_check_setauid_t (struct ucred *cred, uid_t auid) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -134,73 +124,100 @@ casper_mpo_cred_check_setcred_t (u_int flags, const struct ucred *old_cred, stru
 }
 static int
 casper_mpo_cred_check_setegid_t (struct ucred *cred, gid_t egid) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_cred_check_seteuid_t (struct ucred *cred, uid_t euid) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_po_cred_check_setgid_t (struct ucred *cred, gid_t gid) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_cred_check_setgroups_t (struct ucred *cred, int ngroups, gid_t *gidset) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_cred_check_setregid_t (struct ucred *cred, gid_t rgid, gid_t egid) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_cred_check_setresgid_t (struct ucred *cred, gid_t rgid, gid_t egid, gid_t sgid) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_cred_check_setresuid_t (struct ucred *cred, uid_t ruid, uid_t euid, uid_t suid) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_cred_check_setreuid_t (struct ucred *cred, uid_t ruid, uid_t euid) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_cred_check_setuid_t (struct ucred *cred, uid_t uid) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -219,9 +236,12 @@ casper_mpo_cred_check_visible_t (struct ucred *cr1, struct ucred *cr2) {
 /* ifnet */
 static int
 casper_mpo_ifnet_check_relabel_t (struct ucred *cred, struct ifnet *ifp, struct label *ifplabel, struct label *newlabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -229,9 +249,12 @@ casper_mpo_ifnet_check_relabel_t (struct ucred *cred, struct ifnet *ifp, struct 
 /* inpcb */
 static int
 casper_mpo_inpcb_check_visible_t (struct ucred *cred, struct inpcb *inp, struct label *inplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -244,33 +267,45 @@ casper_mpo_inpcb_check_visible_t (struct ucred *cred, struct inpcb *inp, struct 
 /* kenv */
 static int
 casper_mpo_kenv_check_dump_t (struct ucred *cred) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_kenv_check_get_t (struct ucred *cred, char *name) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_kenv_check_set_t (struct ucred *cred, char *name, char *value) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_kenv_check_unset_t (struct ucred *cred, char *name) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -278,17 +313,23 @@ casper_mpo_kenv_check_unset_t (struct ucred *cred, char *name) {
 /* kld */
 static int
 casper_mpo_kld_check_load_t (struct ucred *cred, struct vnode *vp, struct label *vplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_kld_check_stat_t (struct ucred *cred) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -298,9 +339,12 @@ casper_mpo_kld_check_stat_t (struct ucred *cred) {
 /* mount */
 static int
 casper_mpo_mount_check_stat_t (struct ucred *cred, struct mount *mp, struct label *mplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -311,49 +355,67 @@ casper_mpo_mount_check_stat_t (struct ucred *cred, struct mount *mp, struct labe
 /* pipe */
 static int
 casper_mpo_pipe_check_ioctl_t (struct ucred *cred, struct pipepair *pp, struct label *pplabel, unsigned long cmd, void *data) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_pipe_check_poll_t (struct ucred *cred, struct pipepair *pp, struct label *pplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_pipe_check_read_t (struct ucred *cred, struct pipepair *pp, struct label *pplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_pipe_check_relabel_t (struct ucred *cred, struct pipepair *pp, struct label *pplabel, struct label *newlabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_pipe_check_stat_t (struct ucred *cred, struct pipepair *pp, struct label *pplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_pipe_check_write_t (struct ucred *cred, struct pipepair *pp, struct label *pplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -369,9 +431,12 @@ casper_mpo_posixsem_check_getvalue_t (struct ucred *active_cred, struct ucred *f
 }
 static int
 casper_mpo_posixsem_check_open_t (struct ucred *cred, struct ksem *ks, struct label *kslabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -385,17 +450,23 @@ casper_mpo_posixsem_check_post_t (struct ucred *active_cred, struct ucred *file_
 }
 static int
 casper_mpo_posixsem_check_setmode_t (struct ucred *cred, struct ksem *ks, struct label *shmlabel, mode_t mode) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_posixsem_check_setowner_t (struct ucred *cred, struct ksem *ks, struct label *shmlabel, uid_t uid, gid_t gid) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -409,9 +480,12 @@ casper_mpo_posixsem_check_stat_t (struct ucred *active_cred, struct ucred *file_
 }
 static int
 casper_mpo_posixsem_check_unlink_t (struct ucred *cred, struct ksem *ks, struct label *kslabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -427,25 +501,34 @@ casper_mpo_posixsem_check_wait_t (struct ucred *active_cred, struct ucred *file_
 /* posixshm */
 static int
 casper_mpo_posixshm_check_create_t (struct ucred *cred, const char *path) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_posixshm_check_mmap_t (struct ucred *cred, struct shmfd *shmfd, struct label *shmlabel, int prot, int flags) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_posixshm_check_open_t (struct ucred *cred, struct shmfd *shmfd, struct label *shmlabel, accmode_t accmode) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -459,17 +542,23 @@ casper_mpo_posixshm_check_read_t (struct ucred *active_cred, struct ucred *file_
 }
 static int
 casper_mpo_posixshm_check_setmode_t (struct ucred *cred, struct shmfd *shmfd, struct label *shmlabel, mode_t mode) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_posixshm_check_setowner_t (struct ucred *cred, struct shmfd *shmfd, struct label *shmlabel, uid_t uid, gid_t gid) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -491,9 +580,12 @@ casper_mpo_posixshm_check_truncate_t (struct ucred *active_cred, struct ucred *f
 }
 static int
 casper_mpo_posixshm_check_unlink_t (struct ucred *cred, struct shmfd *shmfd, struct label *shmlabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -509,17 +601,23 @@ casper_mpo_posixshm_check_write_t (struct ucred *active_cred, struct ucred *file
 /* priv */
 static int
 casper_mpo_priv_check_t (struct ucred *cred, int priv) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_priv_grant_t (struct ucred *cred, int priv) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -527,33 +625,45 @@ casper_mpo_priv_grant_t (struct ucred *cred, int priv) {
 /* proc */
 static int
 casper_mpo_proc_check_debug_t (struct ucred *cred, struct proc *p) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_proc_check_sched_t (struct ucred *cred, struct proc *p) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_proc_check_signal_t (struct ucred *cred, struct proc *proc, int signum) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_proc_check_wait_t (struct ucred *cred, struct proc *proc) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -561,89 +671,122 @@ casper_mpo_proc_check_wait_t (struct ucred *cred, struct proc *proc) {
 /* socket */
 static int
 casper_mpo_socket_check_accept_t (struct ucred *cred, struct socket *so, struct label *solabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_socket_check_bind_t (struct ucred *cred, struct socket *so, struct label *solabel, struct sockaddr *sa) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_socket_check_connect_t (struct ucred *cred, struct socket *so, struct label *solabel, struct sockaddr *sa) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_socket_check_create_t (struct ucred *cred, int domain, int type, int protocol) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_socket_check_listen_t (struct ucred *cred, struct socket *so, struct label *solabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_socket_check_poll_t (struct ucred *cred, struct socket *so, struct label *solabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_socket_check_receive_t (struct ucred *cred, struct socket *so, struct label *solabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_socket_check_relabel_t (struct ucred *cred, struct socket *so, struct label *solabel, struct label *newlabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_socket_check_send_t (struct ucred *cred, struct socket *so, struct label *solabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_socket_check_stat_t (struct ucred *cred, struct socket *so, struct label *solabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_socket_check_visible_t (struct ucred *cred, struct socket *so, struct label *solabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -653,65 +796,89 @@ casper_mpo_socket_check_visible_t (struct ucred *cred, struct socket *so, struct
 /* system */
 static int
 casper_mpo_system_check_acct_t (struct ucred *cred, struct vnode *vp, struct label *vplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_system_check_audit_t (struct ucred *cred, void *record, int length) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_system_check_auditctl_t (struct ucred *cred, struct vnode *vp, struct label *vplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_system_check_auditon_t (struct ucred *cred, int cmd) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_system_check_reboot_t (struct ucred *cred, int howto) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_system_check_swapon_t (struct ucred *cred, struct vnode *vp, struct label *vplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_system_check_swapoff_t (struct ucred *cred, struct vnode *vp, struct label *vplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_system_check_sysctl_t (struct ucred *cred, struct sysctl_oid *oidp, void *arg1, int arg2, struct sysctl_req *req) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -719,57 +886,78 @@ casper_mpo_system_check_sysctl_t (struct ucred *cred, struct sysctl_oid *oidp, v
 /* sysvmsq */
 static int
 casper_mpo_sysvmsq_check_msgmsq_t (struct ucred *cred, struct msg *msgptr, struct label *msglabel, struct msqid_kernel *msqkptr, struct label *msqklabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_sysvmsq_check_msgrcv_t (struct ucred *cred, struct msg *msgptr, struct label *msglabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_sysvmsq_check_msgrmid_t (struct ucred *cred, struct msg *msgptr, struct label *msglabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_sysvmsq_check_msqget_t (struct ucred *cred, struct msqid_kernel *msqkptr, struct label *msqklabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_sysvmsq_check_msqctl_t (struct ucred *cred, struct msqid_kernel *msqkptr, struct label *msqklabel, int cmd) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_sysvmsq_check_msqrcv_t (struct ucred *cred, struct msqid_kernel *msqkptr, struct label *msqklabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_sysvmsq_check_msqsnd_t (struct ucred *cred, struct msqid_kernel *msqkptr, struct label *msqklabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -777,25 +965,34 @@ casper_mpo_sysvmsq_check_msqsnd_t (struct ucred *cred, struct msqid_kernel *msqk
 /* sysvsem */
 static int
 casper_mpo_sysvsem_check_semctl_t (struct ucred *cred, struct semid_kernel *semakptr, struct label *semaklabel, int cmd) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_sysvsem_check_semget_t (struct ucred *cred, struct semid_kernel *semakptr, struct label *semaklabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_sysvsem_check_semop_t (struct ucred *cred, struct semid_kernel *semakptr, struct label *semaklabel, size_t accesstype) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -803,33 +1000,45 @@ casper_mpo_sysvsem_check_semop_t (struct ucred *cred, struct semid_kernel *semak
 /* sysvshm */
 static int
 casper_mpo_sysvshm_check_shmat_t (struct ucred *cred, struct shmid_kernel *shmsegptr, struct label *shmseglabel, int shmflg) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_sysvshm_check_shmctl_t (struct ucred *cred, struct shmid_kernel *shmsegptr, struct label *shmseglabel, int cmd) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_sysvshm_check_shmdt_t (struct ucred *cred, struct shmid_kernel *shmsegptr, struct label *shmseglabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_sysvshm_check_shmget_t (struct ucred *cred, struct shmid_kernel *shmsegptr, struct label *shmseglabel, int shmflg) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -840,155 +1049,238 @@ casper_mpo_sysvshm_check_shmget_t (struct ucred *cred, struct shmid_kernel *shms
 /* vnode */
 static int
 casper_mpo_vnode_check_access_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, accmode_t accmode) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_chdir_t (struct ucred *cred, struct vnode *dvp, struct label *dvplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_chroot_t (struct ucred *cred, struct vnode *dvp, struct label *dvplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_create_t (struct ucred *cred, struct vnode *dvp, struct label *dvplabel, struct componentname *cnp, struct vattr *vap) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_deleteacl_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, acl_type_t type) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_deleteextattr_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, int attrnamespace, const char *name) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_exec_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, struct image_params *imgp, struct label *execlabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_getacl_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, acl_type_t type) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_getextattr_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, int attrnamespace, const char *name) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_link_t (struct ucred *cred, struct vnode *dvp, struct label *dvplabel, struct vnode *vp, struct label *vplabel, struct componentname *cnp) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_listextattr_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, int attrnamespace) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_lookup_t (struct ucred *cred, struct vnode *dvp, struct label *dvplabel, struct componentname *cnp) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_mmap_t (struct ucred *cred, struct vnode *vp, struct label *label, int prot, int flags) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
-casper_mpo_vnode_check_mprotect_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, int prot) {
-    if (cred == NULL)
+casper_mpo_vnode_check_mprotect_t(struct ucred *cred, struct vnode *vp, struct label *vplabel, int prot) {
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
+// static int
+// casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp, struct label *label, int acc_mode)
+// {
+//     char *filename = NULL, *freebuf = NULL;
+//     int error;
+//
+//     // Check if the credentials are valid
+//     if (cred == NULL) {
+//         return 0;
+//     }
+//
+//     // Restrict access for CASPER_DNS_UID
+//     if (cred->cr_ruid == CASPER_DNS_UID) {
+//         error = vn_fullpath(vp, &filename, &freebuf);
+//
+//         // If we can't determine the path, allow access (fail-safe)
+//         if (error != 0 || filename == NULL) {
+//             return 0;
+//         }
+//
+//         // Allow access to /etc/hosts, /lib/, and /usr/lib/
+//         if (
+//             strcmp(filename, "/etc/nsswitch.conf") != 0 &&
+//             strcmp(filename, "/etc/hosts") != 0 &&
+//             strcmp(filename, "/etc/resolv.conf") != 0 &&
+//             strcmp(filename, "/etc/services") != 0
+//             // && strncmp(filename, "/lib/", 5) != 0 &&
+//             // strncmp(filename, "/usr/lib/", 9) != 0
+//             )
+//         {
+//             free(freebuf, M_TEMP);
+//             return (EACCES); // Deny access
+//         }
+//
+//         // Free the buffer if allocated
+//         free(freebuf, M_TEMP);
+//     }
+//
+//     return 0; // Allow other access
+// }
 static int
 casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp, struct label *label, int acc_mode)
 {
     char *filename = NULL, *freebuf = NULL;
     int error;
 
-    // Check if the credentials are valid
-    if (cred == NULL) {
+    if (cred == NULL || cred->cr_label == NULL) {
         return 0;
     }
 
-    // Restrict access for CASPER_DNS_UID
-    if (cred->cr_ruid == CASPER_DNS_UID) {
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL) {
+        return 0;
+    }
+
+    // Check for the specific label "dns"
+    if (!strcmp(obj->label, "dns")) {
+        // Get the full path of the vnode
         error = vn_fullpath(vp, &filename, &freebuf);
 
-        // If we can't determine the path, allow access (fail-safe)
+        // If full path retrieval fails, allow access (fail-safe policy)
         if (error != 0 || filename == NULL) {
             return 0;
         }
 
-        // Allow access to /etc/hosts, /lib/, and /usr/lib/
-        if (
-            strcmp(filename, "/etc/nsswitch.conf") != 0 &&
+        // Restrict access to specific paths
+        if (strcmp(filename, "/etc/nsswitch.conf") != 0 &&
             strcmp(filename, "/etc/hosts") != 0 &&
             strcmp(filename, "/etc/resolv.conf") != 0 &&
-            strcmp(filename, "/etc/services") != 0
-            // && strncmp(filename, "/lib/", 5) != 0 &&
-            // strncmp(filename, "/usr/lib/", 9) != 0
-            )
+            strcmp(filename, "/etc/services") != 0)
         {
-            free(freebuf, M_TEMP);
-            return (EACCES); // Deny access
+            free(freebuf, M_TEMP); // Free allocated buffer
+            return (EACCES);      // Deny access
         }
 
-        // Free the buffer if allocated
+        // Free allocated buffer after successful checks
         free(freebuf, M_TEMP);
     }
 
-    return 0; // Allow other access
+    return 0; // Allow access for other labels or conditions
 }
 static int
 casper_mpo_vnode_check_poll_t (struct ucred *active_cred, struct ucred *file_cred, struct vnode *vp, struct label *vplabel) {
@@ -1039,97 +1331,133 @@ casper_mpo_vnode_check_read_t (struct ucred *active_cred, struct ucred *file_cre
 }
 static int
 casper_mpo_vnode_check_readdir_t (struct ucred *cred, struct vnode *dvp, struct label *dvplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_readlink_t (struct ucred *cred, struct vnode *vp, struct label *vplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_relabel_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, struct label *newlabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_rename_from_t (struct ucred *cred, struct vnode *dvp, struct label *dvplabel, struct vnode *vp, struct label *vplabel, struct componentname *cnp) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_rename_to_t (struct ucred *cred, struct vnode *dvp, struct label *dvplabel, struct vnode *vp, struct label *vplabel, int samedir, struct componentname *cnp) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_revoke_t (struct ucred *cred, struct vnode *vp, struct label *vplabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_setacl_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, acl_type_t type, struct acl *acl) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_setextattr_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, int attrnamespace, const char *name) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_setflags_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, u_long flags) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_setmode_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, mode_t mode) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_setowner_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, uid_t uid, gid_t gid) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 static int
 casper_mpo_vnode_check_setutimes_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, struct timespec atime, struct timespec mtime) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -1143,9 +1471,12 @@ casper_mpo_vnode_check_stat_t (struct ucred *active_cred, struct ucred *file_cre
 }
 static int
 casper_mpo_vnode_check_unlink_t (struct ucred *cred, struct vnode *dvp, struct label *dvplabel, struct vnode *vp, struct label *vplabel, struct componentname *cnp) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -1159,9 +1490,12 @@ casper_mpo_vnode_check_write_t (struct ucred *active_cred, struct ucred *file_cr
 }
 static int
 casper_mpo_vnode_create_extattr_t (struct ucred *cred, struct mount *mp, struct label *mplabel, struct vnode *dvp, struct label *dvplabel, struct vnode *vp, struct label *vplabel, struct componentname *cnp) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
@@ -1175,27 +1509,17 @@ casper_mpo_vnode_execve_will_transition_t (struct ucred *old, struct vnode *vp, 
 }
 static int
 casper_mpo_vnode_setlabel_extattr_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, struct label *intlabel) {
-    if (cred == NULL)
+    if (cred == NULL || cred->cr_label == NULL)
         return 0;
-    if (cred->cr_ruid == CASPER_DNS_UID)
+    struct mac_casper *obj = SLOT(cred->cr_label);
+    if (obj == NULL)
+        return 0;
+    if (!strcmp(obj->label, "dns"))
         return EACCES;
     return 0;
 }
 
-/* Label */
-struct mac_casper {
-    char label[20];
-};
-
-static int casper_slot;
-const char *casper_label = "casper";
-
-#define SLOT(l) ((struct mac_casper *)mac_label_get((l), casper_slot))
-#define SLOT_SET(l, val) mac_label_set((l), casper_slot, (uintptr_t)(val))
-
-// Define a malloc_type for mac_casper
-MALLOC_DEFINE(M_MAC_CASPER, "mac_casper", "Memory for MAC Casper policy");
-
+/* label */
 static int
 casper_mpo_cred_internalize_label_t(struct label *label, char *element_name, char *element_data, int *claimed) {
     struct mac_casper *memory;
@@ -1204,7 +1528,7 @@ casper_mpo_cred_internalize_label_t(struct label *label, char *element_name, cha
     if (strcmp(casper_label, element_name) != 0)
         return (0);
 
-    memory = malloc(sizeof(struct mac_casper), M_MAC_CASPER, M_WAITOK);
+    memory = uma_zalloc(zone_casper, M_WAITOK);
     if (memory == NULL) {
         return (ENOMEM);
     }
@@ -1217,16 +1541,28 @@ casper_mpo_cred_internalize_label_t(struct label *label, char *element_name, cha
 
     // Set the allocated memory into the slot
     SLOT_SET(label, memory);
-
+    printf("internalize success\n");
     return 0;
+}
+
+/* init */
+static void
+casper_init(struct mac_policy_conf *conf)
+{
+	zone_casper = uma_zcreate("mac_casper", sizeof(struct mac_casper), NULL,
+	    NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
 }
 
 
 /* Base structure */
 static struct mac_policy_ops caspe_mac_policy_ops = {
+    /* init */
+    .mpo_init = casper_init,
+
     /* bpfdsec */
     /* cred */
-    .mpo_cred_check_relabel = casper_mpo_cred_check_relabel_t,
+    .mpo_cred_relabel = casper_cred_relabel,
+    // .mpo_cred_check_relabel = casper_mpo_cred_check_relabel_t,
     .mpo_cred_check_setaudit = casper_mpo_cred_check_setaudit_t,
     .mpo_cred_check_setaudit_addr = casper_mpo_cred_check_setaudit_addr_t,
     .mpo_cred_check_setauid = casper_mpo_cred_check_setauid_t,
