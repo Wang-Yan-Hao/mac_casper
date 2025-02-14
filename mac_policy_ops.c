@@ -42,14 +42,12 @@ static uma_zone_t	zone_casper;
 static void
 casper_cred_relabel(struct ucred *cred, struct label *newlabel)
 {
-    printf("casper_cred_relabel start\n");
     struct mac_casper *source, *dest;
 
     source = SLOT(newlabel);
     dest = SLOT(cred->cr_label);
 
     if (source == NULL) {
-        printf("source is NULL\n");
         return;
     }
 
@@ -57,7 +55,6 @@ casper_cred_relabel(struct ucred *cred, struct label *newlabel)
         // If dest is NULL, allocate memory for the label
         dest = uma_zalloc(zone_casper, M_WAITOK);
         if (dest == NULL) {
-            printf("Failed to allocate memory for dest\n");
             return;
         }
         // Update the label using SLOT_SET to set it on cred
@@ -66,9 +63,16 @@ casper_cred_relabel(struct ucred *cred, struct label *newlabel)
 
     // Now perform the actual copy of the label content
     *dest = *source; // Perform shallow copy since mac_casper has no dynamically allocated fields
-    printf("casper_cred_relabel success\n");
     return;
 }
+static void
+casper_cred_destroy_label(struct label *label) {
+    struct mac_casper *cur = SLOT(label);
+    if (cur != NULL)
+        uma_zfree(zone_casper, cur);
+    SLOT_SET(label, NULL);
+}
+
 static int
 casper_mpo_cred_check_relabel_t (struct ucred *cred, struct label *newlabel) {
     if (cred == NULL || cred->cr_label == NULL)
@@ -1523,7 +1527,6 @@ casper_mpo_vnode_setlabel_extattr_t (struct ucred *cred, struct vnode *vp, struc
 static int
 casper_mpo_cred_internalize_label_t(struct label *label, char *element_name, char *element_data, int *claimed) {
     struct mac_casper *memory;
-    printf("I am in casper internalize label\n");
 
     if (strcmp(casper_label, element_name) != 0)
         return (0);
@@ -1541,7 +1544,6 @@ casper_mpo_cred_internalize_label_t(struct label *label, char *element_name, cha
 
     // Set the allocated memory into the slot
     SLOT_SET(label, memory);
-    printf("internalize success\n");
     return 0;
 }
 
@@ -1552,16 +1554,24 @@ casper_init(struct mac_policy_conf *conf)
 	zone_casper = uma_zcreate("mac_casper", sizeof(struct mac_casper), NULL,
 	    NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
 }
-
+static void
+casper_destroy(struct mac_policy_conf *mpc)
+{
+    if (zone_casper != NULL) {
+        uma_zdestroy(zone_casper);
+        zone_casper = NULL;
+    }
+}
 
 /* Base structure */
 static struct mac_policy_ops caspe_mac_policy_ops = {
     /* init */
     .mpo_init = casper_init,
-
+    .mpo_destroy = casper_destroy,
     /* bpfdsec */
     /* cred */
     .mpo_cred_relabel = casper_cred_relabel,
+    .mpo_cred_destroy_label = casper_cred_destroy_label,
     // .mpo_cred_check_relabel = casper_mpo_cred_check_relabel_t,
     .mpo_cred_check_setaudit = casper_mpo_cred_check_setaudit_t,
     .mpo_cred_check_setaudit_addr = casper_mpo_cred_check_setaudit_addr_t,
@@ -1638,14 +1648,14 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
     /* socket */
     .mpo_socket_check_accept = casper_mpo_socket_check_accept_t,
     .mpo_socket_check_bind = casper_mpo_socket_check_bind_t,
-    // .mpo_socket_check_connect = casper_mpo_socket_check_connect_t,
-    // .mpo_socket_check_create = casper_mpo_socket_check_create_t,
+    // // .mpo_socket_check_connect = casper_mpo_socket_check_connect_t,
+    // // .mpo_socket_check_create = casper_mpo_socket_check_create_t,
     .mpo_socket_check_listen = casper_mpo_socket_check_listen_t,
-    .mpo_socket_check_poll = casper_mpo_socket_check_poll_t,
-    // .mpo_socket_check_receive = casper_mpo_socket_check_receive_t,
+    // .mpo_socket_check_poll = casper_mpo_socket_check_poll_t,
+    // // .mpo_socket_check_receive = casper_mpo_socket_check_receive_t,
     .mpo_socket_check_relabel = casper_mpo_socket_check_relabel_t,
-    // .mpo_socket_check_send = casper_mpo_socket_check_send_t,
-    .mpo_socket_check_stat = casper_mpo_socket_check_stat_t,
+    // // .mpo_socket_check_send = casper_mpo_socket_check_send_t,
+    // .mpo_socket_check_stat = casper_mpo_socket_check_stat_t,
     .mpo_socket_check_visible = casper_mpo_socket_check_visible_t,
     /* socketpeer */
     /* system */
