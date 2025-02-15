@@ -22,6 +22,7 @@
 /* Label */
 struct mac_casper {
     char label[20];
+    char original_filename[40];
 };
 
 static int casper_slot;
@@ -44,27 +45,29 @@ casper_cred_relabel(struct ucred *cred, struct label *newlabel)
 {
     struct mac_casper *source, *dest;
 
-    source = SLOT(newlabel);
-    dest = SLOT(cred->cr_label);
-
-    if (source == NULL) {
+    if (cred == NULL || newlabel == NULL)
         return;
-    }
 
+    source = SLOT(newlabel);
+    if (source == NULL)
+        return;
+
+    dest = SLOT(cred->cr_label);
     if (dest == NULL) {
-        // If dest is NULL, allocate memory for the label
-        dest = uma_zalloc(zone_casper, M_WAITOK);
+        // Use M_NOWAIT to prevent sleeping inside a non-sleepable lock
+        dest = uma_zalloc(zone_casper, M_NOWAIT);
         if (dest == NULL) {
-            return;
+            return; // Prevent further use of a NULL pointer
         }
-        // Update the label using SLOT_SET to set it on cred
+
+        bzero(dest, sizeof(*dest)); // Ensure zero-initialization
         SLOT_SET(cred->cr_label, dest);
     }
 
-    // Now perform the actual copy of the label content
-    *dest = *source; // Perform shallow copy since mac_casper has no dynamically allocated fields
-    return;
+    // Perform a shallow copy (assuming no dynamically allocated fields in mac_casper)
+    *dest = *source;
 }
+
 static void
 casper_cred_destroy_label(struct label *label) {
     struct mac_casper *cur = SLOT(label);
@@ -1058,8 +1061,9 @@ casper_mpo_vnode_check_access_t (struct ucred *cred, struct vnode *vp, struct la
     struct mac_casper *obj = SLOT(cred->cr_label);
     if (obj == NULL)
         return 0;
-    if (!strcmp(obj->label, "dns"))
+    if (!strcmp(obj->label, "dns")) {
         return EACCES;
+    }
     return 0;
 }
 static int
@@ -1179,8 +1183,9 @@ casper_mpo_vnode_check_lookup_t (struct ucred *cred, struct vnode *dvp, struct l
     struct mac_casper *obj = SLOT(cred->cr_label);
     if (obj == NULL)
         return 0;
-    if (!strcmp(obj->label, "dns"))
+    if (!strcmp(obj->label, "dns")) {
         return EACCES;
+    }
     return 0;
 }
 static int
@@ -1262,6 +1267,15 @@ casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp, struct label *
 
     // Check for the specific label "dns"
     if (!strcmp(obj->label, "dns")) {
+        if (!strcmp(obj->original_filename, "/etc/nsswitch.conf") ||
+            !strcmp(obj->original_filename, "/etc/hosts") ||
+            !strcmp(obj->original_filename, "/etc/resolv.conf") ||
+            !strcmp(obj->original_filename, "/etc/services"))
+        {
+            obj->original_filename[0] = '\0';
+            return 0;
+        }
+
         // Get the full path of the vnode
         error = vn_fullpath(vp, &filename, &freebuf);
 
@@ -1346,14 +1360,54 @@ casper_mpo_vnode_check_readdir_t (struct ucred *cred, struct vnode *dvp, struct 
 }
 static int
 casper_mpo_vnode_check_readlink_t (struct ucred *cred, struct vnode *vp, struct label *vplabel) {
-    if (cred == NULL || cred->cr_label == NULL)
+    char *filename = NULL, *freebuf = NULL;
+    int error;
+
+    if (cred == NULL || cred->cr_label == NULL) {
         return 0;
+    }
+
     struct mac_casper *obj = SLOT(cred->cr_label);
-    if (obj == NULL)
+    if (obj == NULL) {
         return 0;
-    if (!strcmp(obj->label, "dns"))
-        return EACCES;
-    return 0;
+    }
+
+    // Check for the specific label "dns"
+    if (!strcmp(obj->label, "dns")) {
+        if (!strcmp(obj->original_filename, "/etc/nsswitch.conf") ||
+            !strcmp(obj->original_filename, "/etc/hosts") ||
+            !strcmp(obj->original_filename, "/etc/resolv.conf") ||
+            !strcmp(obj->original_filename, "/etc/services"))
+        {
+            return 0;
+        }
+
+
+        // Get the full path of the vnode
+        error = vn_fullpath(vp, &filename, &freebuf);
+
+        // If full path retrieval fails, allow access (fail-safe policy)
+        if (error != 0 || filename == NULL) {
+            return 0;
+        }
+
+        // Restrict access to specific paths
+        if (strcmp(filename, "/etc/nsswitch.conf") != 0 &&
+            strcmp(filename, "/etc/hosts") != 0 &&
+            strcmp(filename, "/etc/resolv.conf") != 0 &&
+            strcmp(filename, "/etc/services") != 0)
+        {
+            free(freebuf, M_TEMP); // Free allocated buffer
+            return (EACCES);      // Deny access
+        }
+
+        strlcpy(obj->original_filename, filename, sizeof(obj->original_filename));
+
+        // Free allocated buffer after successful checks
+        free(freebuf, M_TEMP);
+    }
+
+    return 0; // Allow access for other labels or conditions
 }
 static int
 casper_mpo_vnode_check_relabel_t (struct ucred *cred, struct vnode *vp, struct label *vplabel, struct label *newlabel) {
@@ -1529,15 +1583,23 @@ casper_mpo_cred_internalize_label_t(struct label *label, char *element_name, cha
     struct mac_casper *memory;
 
     if (strcmp(casper_label, element_name) != 0)
-        return (0);
+        return 0;
 
-    memory = uma_zalloc(zone_casper, M_WAITOK);
+    memory = uma_zalloc(zone_casper, M_NOWAIT);
     if (memory == NULL) {
-        return (ENOMEM);
+        return ENOMEM;
     }
 
-    // Safely copy the label from element_data
-    snprintf(memory->label, sizeof(memory->label), "%s", element_data);
+    // Initialize the entire structure to zero (safe default)
+    memset(memory, 0, sizeof(struct mac_casper));
+
+    // Safely copy the label from element_data (ensure null termination)
+    if (element_data != NULL) {
+        strlcpy(memory->label, element_data, sizeof(memory->label));
+    }
+
+    // Ensure original_filename is an empty string
+    memory->original_filename[0] = '\0';
 
     // Mark that the label was claimed
     (*claimed)++;
@@ -1547,12 +1609,21 @@ casper_mpo_cred_internalize_label_t(struct label *label, char *element_name, cha
     return 0;
 }
 
+
 /* init */
 static void
 casper_init(struct mac_policy_conf *conf)
 {
-	zone_casper = uma_zcreate("mac_casper", sizeof(struct mac_casper), NULL,
-	    NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
+    printf("\ncasper_init start\n");
+    /* Check if zone_casper is already created */
+    zone_casper = uma_zcreate("mac_casper", sizeof(struct mac_casper), NULL,
+            NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
+    if (zone_casper == NULL) {
+        /* Handle memory allocation failure */
+        printf("Failed to create uma zone for casper\n");
+        return;
+    }
+    printf("\ncasper_init end\n");
 }
 static void
 casper_destroy(struct mac_policy_conf *mpc)
@@ -1655,7 +1726,7 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
     // // .mpo_socket_check_receive = casper_mpo_socket_check_receive_t,
     .mpo_socket_check_relabel = casper_mpo_socket_check_relabel_t,
     // // .mpo_socket_check_send = casper_mpo_socket_check_send_t,
-    // .mpo_socket_check_stat = casper_mpo_socket_check_stat_t,
+    .mpo_socket_check_stat = casper_mpo_socket_check_stat_t,
     .mpo_socket_check_visible = casper_mpo_socket_check_visible_t,
     /* socketpeer */
     /* system */
