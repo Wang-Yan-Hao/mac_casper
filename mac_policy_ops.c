@@ -776,6 +776,17 @@ casper_mpo_socket_check_bind_t (struct ucred *cred, struct socket *so, struct la
 #include <sys/socket.h>  // For sockaddr (generic)
 
 
+        #include <sys/param.h>
+        #include <sys/kernel.h>
+        #include <sys/proc.h>
+        #include <sys/vnode.h>
+        #include <sys/namei.h>
+        #include <sys/fcntl.h>
+
+    #define BUF_SIZE 512  // Read in chunks
+
+#define MAX_NAMESERVERS 3  // Limit how many nameservers we parse
+
 static int
 casper_mpo_socket_check_connect_t (struct ucred *cred, struct socket *so, struct label *solabel, struct sockaddr *sa) {
     if (cred == NULL || cred->cr_label == NULL)
@@ -805,7 +816,89 @@ casper_mpo_socket_check_connect_t (struct ucred *cred, struct socket *so, struct
             }
             printf("\n");
         }
-        return 0;
+
+        struct nameidata nd;
+            struct vnode *vp;
+            struct uio auio;
+            struct iovec aiov;
+            char *buf;
+            int error;
+            off_t offset = 0;
+            size_t bytes_read;
+            int nserv = 0;
+
+            // Allocate buffer in kernel space
+            buf = (char *)malloc(BUF_SIZE, M_TEMP, M_WAITOK | M_ZERO);
+            if (!buf) {
+                printf("[Kernel] Failed to allocate buffer\n");
+                return 0;
+            }
+
+            NDINIT(&nd, LOOKUP, FOLLOW, UIO_SYSSPACE, "/etc/resolv.conf");
+
+            error = namei(&nd);
+            if (error) {
+                printf("[Kernel] namei() failed: %d\n", error);
+                free(buf, M_TEMP);
+                return 0;
+            }
+
+        vp = nd.ni_vp;
+
+        if (vp->v_type != VREG) {
+            printf("[Kernel] /etc/resolv.conf is not a regular file\n");
+            vrele(vp);
+            free(buf, M_TEMP);
+            return 0;
+        }
+
+        // Read file contents
+        printf("[Kernel] Reading /etc/resolv.conf...\n");
+
+        while (nserv < MAX_NAMESERVERS) {
+            aiov.iov_base = buf;
+            aiov.iov_len = BUF_SIZE;
+            auio.uio_iov = &aiov;
+            auio.uio_iovcnt = 1;
+            auio.uio_offset = offset;
+            auio.uio_resid = BUF_SIZE;
+            auio.uio_segflg = UIO_SYSSPACE;
+            auio.uio_rw = UIO_READ;
+            auio.uio_td = curthread;  // Current kernel thread
+
+            error = vn_rdwr(UIO_READ, vp, buf, BUF_SIZE, offset, UIO_SYSSPACE,
+                            IO_NODELOCKED, curthread->td_ucred, curthread->td_ucred,
+                            NULL, curthread);
+            if (error || auio.uio_resid == BUF_SIZE) {
+                printf("[Kernel] Error in vn_rdwr\n");
+                return 0;
+                break;  // Error or end of file
+            }
+
+            bytes_read = BUF_SIZE - auio.uio_resid;
+            offset += bytes_read;
+
+            // Parse buffer for "nameserver" entries
+            char *line = buf;
+            while ((line = strsep(&buf, "\n")) != NULL) {
+                printf("[Kernel] Line %s\n", line);
+                if (strncmp(line, "nameserver", 10) == 0) {
+                    char *cp = line + 10;
+
+                    // Skip spaces
+                    while (*cp == ' ' || *cp == '\t') cp++;
+
+                    if (*cp) {  // If IP is present
+                        printf("[Kernel] Found nameserver: %s\n", cp);
+                        nserv++;
+                    }
+                }
+            }
+        }
+
+        // Cleanup
+        vrele(vp);
+        free(buf, M_TEMP);
     }
 
     return 0;
