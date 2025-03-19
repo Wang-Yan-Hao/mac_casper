@@ -41,9 +41,9 @@ make
 
 ## Limit privileged
 
-[](https://github.com/user-attachments/assets/6a5e4068-c46b-4dab-b601-bd0507142fb2)
+![image](https://github.com/user-attachments/assets/16e1e28b-5505-4208-ab16-e1e2e37fc3bd)
 
-In Casper, multiple services run independently, and each should have its own namespace. Below is an overview of the required permissions for each service:  
+In Casper ([libcasper(3)](https://man.freebsd.org/cgi/man.cgi?query=libcasper&apropos=0&sektion=3&manpath=FreeBSD+15.0-CURRENT&arch=default&format=html)), multiple services run independently, and each should have its own namespace. Below is an overview of the required permissions for each service:  
 
 ### DNS  
 The DNS service should be able to open, read, and perform lookups on the following files:  
