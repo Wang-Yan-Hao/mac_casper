@@ -1,0 +1,1859 @@
+CPU     ID                    FUNCTION:NAME
+  0  71223                 socketpair:entry socketpair
+
+  0  71971                     pdfork:entry pdfork
+
+  0  70965                      close:entry close
+
+  0  71137                      fcntl:entry fcntl
+
+  0  71137                      fcntl:entry fcntl
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+Iterating through groups:
+Group: wheel (GID: 0)
+Group: daemon (GID: 1)
+Group: kmem (GID: 2)
+Group: sys (GID: 3)
+Group: tty (GID: 4)
+Group: operator (GID: 5)
+Group: mail (GID: 6)
+Group: bin (GID: 7)
+Group: news (GID: 8)
+Group: man (GID: 9)
+Group: games (GID: 13)
+Group: ftp (GID: 14)
+Group: staff (GID: 20)
+Group: sshd (GID: 22)
+Group: smmsp (GID: 25)
+Group: mailnull (GID: 26)
+Group: guest (GID: 31)
+Group: video (GID: 44)
+Group: realtime (GID: 47)
+Group: idletime (GID: 48)
+Group: bind (GID: 53)
+Group: unbound (GID: 59)
+Group: proxy (GID: 62)
+Group: authpf (GID: 63)
+Group: _pflogd (GID: 64)
+Group: _dhcp (GID: 65)
+Group: uucp (GID: 66)
+Group: dialer (GID: 68)
+Group: network (GID: 69)
+Group: audit (GID: 77)
+Group: www (GID: 80)
+Group: u2f (GID: 116)
+Group: ntpd (GID: 123)
+Group: _ypldap (GID: 160)
+Group: hast (GID: 845)
+Group: tests (GID: 977)
+Group: nogroup (GID: 65533)
+Group: nobody (GID: 65534)
+Group: kola (GID: 1001)
+Group: messagebus (GID: 556)
+Group: polkitd (GID: 565)
+Group: avahi (GID: 558)
+Group: pulse (GID: 563)
+Group: pulse-access (GID: 564)
+Group: pulse-rt (GID: 557)
+Group: colord (GID: 970)
+Group: cups (GID: 193)
+Group: cyrus (GID: 60)
+Group: mysql (GID: 88)
+Group: saned (GID: 194)
+Group: webcamd (GID: 145)
+Group: _sndio (GID: 702)
+Group: git_daemon (GID: 964)
+Group 'wheel': GID = 0
+GID 0 corresponds to group: wheel
+Using reentrant functions:
+Iterating through groups again after reset:
+Group: wheel (GID: 0)
+Group: daemon (GID: 1)
+Group: kmem (GID: 2)
+Group: sys (GID: 3)
+Group: tty (GID: 4)
+Group: operator (GID: 5)
+Group: mail (GID: 6)
+Group: bin (GID: 7)
+Group: news (GID: 8)
+Group: man (GID: 9)
+Group: games (GID: 13)
+Group: ftp (GID: 14)
+Group: staff (GID: 20)
+Group: sshd (GID: 22)
+Group: smmsp (GID: 25)
+Group: mailnull (GID: 26)
+Group: guest (GID: 31)
+Group: video (GID: 44)
+Group: realtime (GID: 47)
+Group: idletime (GID: 48)
+Group: bind (GID: 53)
+Group: unbound (GID: 59)
+Group: proxy (GID: 62)
+Group: authpf (GID: 63)
+Group: _pflogd (GID: 64)
+Group: _dhcp (GID: 65)
+Group: uucp (GID: 66)
+Group: dialer (GID: 68)
+Group: network (GID: 69)
+Group: audit (GID: 77)
+Group: www (GID: 80)
+Group: u2f (GID: 116)
+Group: ntpd (GID: 123)
+Group: _ypldap (GID: 160)
+Group: hast (GID: 845)
+Group: tests (GID: 977)
+Group: nogroup (GID: 65533)
+Group: nobody (GID: 65534)
+Group: kola (GID: 1001)
+Group: messagebus (GID: 556)
+Group: polkitd (GID: 565)
+Group: avahi (GID: 558)
+Group: pulse (GID: 563)
+Group: pulse-access (GID: 564)
+Group: pulse-rt (GID: 557)
+Group: colord (GID: 970)
+Group: cups (GID: 193)
+Group: cyrus (GID: 60)
+Group: mysql (GID: 88)
+Group: saned (GID: 194)
+Group: webcamd (GID: 145)
+Group: _sndio (GID: 702)
+Group: git_daemon (GID: 964)
+  3  71011                   recvfrom:entry recvfrom
+
+  3  71139                     select:entry select
+
+  3  71011                   recvfrom:entry recvfrom
+
+  3  71139                     select:entry select
+
+  3  71007                    recvmsg:entry recvmsg
+
+  3  71137                      fcntl:entry fcntl
+
+  3  70965                      close:entry close
+
+  3  70965                      close:entry close
+
+  3  71139                     select:entry select
+
+  3  71219                     sendto:entry sendto
+
+  3  71189                 getsockopt:entry getsockopt
+
+  3  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  72037                      fstat:entry fstat
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71011                   recvfrom:entry recvfrom
+
+  0  71139                     select:entry select
+
+  0  71219                     sendto:entry sendto
+
+  0  71189                 getsockopt:entry getsockopt
+
+  0  71139                     select:entry select
+
+  3  71011                   recvfrom:entry recvfrom
+
+  3  71139                     select:entry select
+
+  3  71011                   recvfrom:entry recvfrom
+
+  3  71139                     select:entry select
+
+  3  71219                     sendto:entry sendto
+
+  3  71189                 getsockopt:entry getsockopt
+
+  3  71139                     select:entry select
+
+  3  71011                   recvfrom:entry recvfrom
+
+  3  71139                     select:entry select
+
+  3  71011                   recvfrom:entry recvfrom
+
+  3  70965                      close:entry close
+
+
