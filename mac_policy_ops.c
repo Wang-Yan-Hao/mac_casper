@@ -798,15 +798,22 @@ casper_mpo_socket_check_connect_t (struct ucred *cred, struct socket *so, struct
     if (!strcmp(obj->label, "dns")) {
         printf("casper_mpo_socket_check_connect_t\n");
 
+        /* Flag */
+        bool ipv4 = true;
+        bool pass = false;
+        char ip_str[INET_ADDRSTRLEN];  // Allocate buffer for the IP address string
+        struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
+        struct sockaddr_in *sin = (struct sockaddr_in *)sa;
+
+
         // Check if sockaddr is IPv4 or IPv6
         if (sa->sa_family == AF_INET) {
-            struct sockaddr_in *sin = (struct sockaddr_in *)sa;
-            char ip_str[INET_ADDRSTRLEN];  // Allocate buffer for the IP address string
             inet_ntoa_r(sin->sin_addr, ip_str);  // Convert the raw address to a string
             printf("Connecting to IP (IPv4): %s\n", ip_str);  // Print the IP address as a string
         }
         else if (sa->sa_family == AF_INET6) {
-            struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
+            ipv4 = false;
+
             printf("Connecting to IP (IPv6): ");
             for (int i = 0; i < 16; i++) {
                 printf("%02x", sin6->sin6_addr.s6_addr[i]); // Print raw IPv6 address in hex
@@ -866,17 +873,32 @@ casper_mpo_socket_check_connect_t (struct ucred *cred, struct socket *so, struct
             auio.uio_rw = UIO_READ;
             auio.uio_td = curthread;  // Current kernel thread
 
-            error = vn_rdwr(UIO_READ, vp, buf, BUF_SIZE, offset, UIO_SYSSPACE,
-                            IO_NODELOCKED, curthread->td_ucred, curthread->td_ucred,
-                            NULL, curthread);
-            if (error || auio.uio_resid == BUF_SIZE) {
+
+            // error = vn_rdwr(UIO_READ, vp, buf, BUF_SIZE, offset, UIO_SYSSPACE,
+            //                 IO_NODELOCKED, curthread->td_ucred, curthread->td_ucred,
+            //                 NULL, curthread);
+
+            error = VOP_READ(vp, &auio, IO_NODELOCKED, curthread->td_ucred);
+
+            if (error) {
+                printf("[Kernel] vnode type: %d\n", vp->v_type);
+printf("[Kernel] vnode path: %s\n", nd.ni_cnd.cn_nameptr);
+printf("[Kernel] Mount flags: 0x%lx\n", vp->v_mount->mnt_flag);
+
+                printf("[Kernel] auio.uio_resid %zd\n", auio.uio_resid);
+                printf("[Kernel] error number: %d\n", error);
                 printf("[Kernel] Error in vn_rdwr\n");
+                printf("[Kernel] vnode type: %d\n", vp->v_type);
                 return 0;
-                break;  // Error or end of file
+            }
+
+            if (auio.uio_resid == BUF_SIZE) {
+                break;  // End of file
             }
 
             bytes_read = BUF_SIZE - auio.uio_resid;
             offset += bytes_read;
+
 
             // Parse buffer for "nameserver" entries
             char *line = buf;
@@ -890,10 +912,24 @@ casper_mpo_socket_check_connect_t (struct ucred *cred, struct socket *so, struct
 
                     if (*cp) {  // If IP is present
                         printf("[Kernel] Found nameserver: %s\n", cp);
+
+                        if (ipv4) {
+                            printf("[IP] %s\n", ip_str);
+                            if (!strncmp(cp, ip_str, strlen(ip_str))) {  // Fixed typo & logic
+                                pass = true;
+                            }
+                        }
+                        // else {} TODO
                         nserv++;
                     }
                 }
             }
+        }
+
+        if (pass) {
+            printf("[Pass]\n");
+        } else {
+            return 1;
         }
 
         // Cleanup
