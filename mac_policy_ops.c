@@ -1279,7 +1279,7 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	// .mpo_socket_check_poll = casper_mpo_socket_check_poll_t, // Enable
 	// .mpo_socket_check_receive = ... , // Enable
 	.mpo_socket_check_relabel = casper_mpo_socket_check_relabel_t,
-	.mpo_socket_check_send = casper_mpo_socket_check_send_t, // Enable, TODO
+	//.mpo_socket_check_send = casper_mpo_socket_check_send_t, // Enable, TODO
 	.mpo_socket_check_stat = casper_mpo_socket_check_stat_t,
 	.mpo_socket_check_visible = casper_mpo_socket_check_visible_t,
 	/* syncache */

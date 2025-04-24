@@ -1,3 +1,4 @@
+*.kld
 .depend.mac_policy_ops.o
 export_syms
 i386
