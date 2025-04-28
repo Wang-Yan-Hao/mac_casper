@@ -24,10 +24,10 @@
 #include <security/mac/mac_syscalls.h>
 
 #define BUF_SIZE	 512 // Read in chunks
-#define MAX_NAMESERVERS	 10  // Limit how many nameservers we parse
+#define MAX_NAMESERVERS	 3   // Limit how many nameservers we parse
 
 #define SLOT(l)		 ((struct mac_casper *)mac_label_get((l), casper_slot))
-#define SLOT_SET(l, val) (mac_label_set((l), casper_slot, (uintptr_t)(val)))
+#define SLOT_SET(l, val) mac_label_set((l), casper_slot, (uintptr_t)(val))
 
 /* My label structure */
 struct mac_casper {
@@ -35,22 +35,14 @@ struct mac_casper {
 	char original_filename[40];
 };
 
-static const char *casper_label = "casper"; /* Module label */
-static const char *casper_blocked_labels[] = {
-	/* List of blocked labels */
-	"dns",
-	// Add more labels here in the future
-	NULL // Sentinel to mark end of array
-};
-
-/* DNS */
-static const char *casper_dns_allowed_files_open[] = {
-	"/etc/nsswitch.conf", "/etc/hosts", "/etc/resolv.conf", "/etc/services",
-	NULL // Sentinel
-};
-
 static int casper_slot;
 static uma_zone_t zone_casper;
+static const char *casper_label = "casper"; /* Module label */
+static const char *casper_blocked_labels[] = { "dns", NULL };
+
+/* DNS */
+static const char *casper_dns_allowed_files_open[] = { "/etc/nsswitch.conf",
+	"/etc/hosts", "/etc/resolv.conf", "/etc/services", NULL };
 
 /* Helper function */
 static int
@@ -91,9 +83,8 @@ casper_cred_relabel(struct ucred *cred, struct label *newlabel)
 		dest = uma_zalloc(zone_casper, M_NOWAIT);
 		if (dest == NULL) {
 			return;
-		}
 
-		bzero(dest, sizeof(*dest)); // Ensure zero-initialization
+		memset(dest, 0, sizeof(*dest));
 		SLOT_SET(cred->cr_label, dest);
 	}
 
@@ -686,11 +677,23 @@ casper_mpo_socket_check_relabel_t(struct ucred *cred, struct socket *so,
 {
 	return casper_deny_default(cred);
 }
+// TODO
 static int
 casper_mpo_socket_check_send_t(struct ucred *cred, struct socket *so,
     struct label *solabel)
 {
-	return casper_deny_default(cred);
+	if (cred == NULL || cred->cr_label == NULL)
+		return 0;
+	struct mac_casper *obj = SLOT(cred->cr_label);
+	if (obj == NULL)
+		return 0;
+
+	if (!strcmp(obj->label, "dns")) {
+		printf("casper_mpo_socket_check_send_t\n");
+
+		return 0;
+	}
+	return 0;
 }
 static int
 casper_mpo_socket_check_stat_t(struct ucred *cred, struct socket *so,
@@ -753,7 +756,6 @@ casper_mpo_system_check_sysctl_t(struct ucred *cred, struct sysctl_oid *oidp,
 	return casper_deny_default(cred);
 }
 /* sysvmsg */
-/* sysvmsq */
 static int
 casper_mpo_sysvmsq_check_msgmsq_t(struct ucred *cred, struct msg *msgptr,
     struct label *msglabel, struct msqid_kernel *msqkptr,
@@ -935,54 +937,50 @@ casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
 	char *filename = NULL, *freebuf = NULL;
 	int error;
 
-	if (cred == NULL || cred->cr_label == NULL) {
+	if (cred == NULL || cred->cr_label == NULL)
 		return 0;
-	}
 
 	struct mac_casper *obj = SLOT(cred->cr_label);
-	if (obj == NULL) {
+
+	if (obj == NULL)
 		return 0;
-	}
 
 	// Check for the specific label "dns"
 	if (!strcmp(obj->label, "dns")) {
-		// Check soft link original_filename
+		// Check if the original (possibly symlinked) file is allowed
 		for (int i = 0; casper_dns_allowed_files_open[i] != NULL; i++) {
 			if (!strcmp(obj->original_filename,
 				casper_dns_allowed_files_open[i])) {
+				// Clear to mark it as handled and allow access
 				obj->original_filename[0] = '\0';
 				return 0;
 			}
 		}
 
-		// Get the full path of the vnode
+		if (vp == NULL)
+			return 0;
+
 		error = vn_fullpath(vp, &filename, &freebuf);
 
 		// If full path retrieval fails, allow access (fail-safe policy)
-		if (error != 0 || filename == NULL) {
+		if (error != 0 || filename == NULL)
 			return 0;
-		}
 
-		// Restrict access to specific paths
-		int allowed = 0; // Flag to track if the filename is allowed
+		// Check if the full path is allowed
 		for (int i = 0; casper_dns_allowed_files_open[i] != NULL; i++) {
-			if (strcmp(filename,
-				casper_dns_allowed_files_open[i]) == 0) {
-				allowed = 1;
-				break;
+			if (!strcmp(filename,
+				casper_dns_allowed_files_open[i])) {
+				free(freebuf, M_TEMP);
+				return 0;
 			}
 		}
 
-		if (!allowed) {
-			free(freebuf, M_TEMP); // Free allocated buffer
-			return (EACCES);       // Deny access
-		}
-
-		// Free allocated buffer after successful checks
+		// Not in the allowlist
 		free(freebuf, M_TEMP);
+		return EACCES;
 	}
 
-	return 0; // Allow access for other labels or conditions
+	return 0;
 }
 static int
 casper_mpo_vnode_check_poll_t(struct ucred *active_cred,
@@ -1028,34 +1026,29 @@ casper_mpo_vnode_check_readlink_t(struct ucred *cred, struct vnode *vp,
 			}
 		}
 
-		// Get the full path of the vnode
+		if (vp == NULL)
+			return 0;
+
 		error = vn_fullpath(vp, &filename, &freebuf);
 
-		// If full path retrieval fails, allow access (fail-safe policy)
-		if (error != 0 || filename == NULL) {
+		if (error != 0 || filename == NULL)
 			return 0;
-		}
 
-		// Restrict access to specific paths
-		int allowed = 0; // Flag to track if the filename is allowed
+		// Check if the full path is allowed
 		for (int i = 0; casper_dns_allowed_files_open[i] != NULL; i++) {
-			if (strcmp(filename,
-				casper_dns_allowed_files_open[i]) == 0) {
-				allowed = 1;
-				break;
+			if (!strcmp(filename,
+				casper_dns_allowed_files_open[i])) {
+				strlcpy(obj->original_filename, filename,
+				    sizeof(obj->original_filename));
+				free(freebuf, M_TEMP);
+				return 0;
 			}
-		}
-
-		if (!allowed) {
-			free(freebuf, M_TEMP); // Free allocated buffer
-			return (EACCES);       // Deny access
 		}
 
 		strlcpy(obj->original_filename, filename,
 		    sizeof(obj->original_filename));
-
-		// Free allocated buffer after successful checks
 		free(freebuf, M_TEMP);
+		return EACCES;
 	}
 
 	return 0; // Allow access for other labels or conditions
@@ -1165,13 +1158,16 @@ casper_mpo_vnode_setlabel_extattr_t(struct ucred *cred, struct vnode *vp,
 static void
 casper_init(struct mac_policy_conf *conf)
 {
+	printf("\ncasper_init start\n");
 	/* Check if zone_casper is already created */
 	zone_casper = uma_zcreate("mac_casper", sizeof(struct mac_casper), NULL,
 	    NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
 	if (zone_casper == NULL) {
+		/* Handle memory allocation failure */
 		printf("Failed to create uma zone for casper\n");
 		return;
 	}
+	printf("\ncasper_init end\n");
 }
 static void
 casper_destroy(struct mac_policy_conf *mpc)
@@ -1185,8 +1181,8 @@ casper_destroy(struct mac_policy_conf *mpc)
 /* Base structure */
 static struct mac_policy_ops caspe_mac_policy_ops = {
 	/* init */
-	.mpo_init = casper_init,       // Enable
-	.mpo_destroy = casper_destroy, // Enable
+	.mpo_init = casper_init, // Enabled
+	.mpo_destroy = casper_destroy, // Enabled
 	/* bpfdsec */
 	/* cred */
 	// .mpo_cred_check_relabel = ... // Allow relabel
@@ -1272,14 +1268,15 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	/* socket */
 	.mpo_socket_check_accept = casper_mpo_socket_check_accept_t,
 	.mpo_socket_check_bind = casper_mpo_socket_check_bind_t,
-	.mpo_socket_check_connect = casper_mpo_socket_check_connect_t, // Check
+	.mpo_socket_check_connect = casper_mpo_socket_check_connect_t, // TODO
 	// .mpo_socket_check_create = casper_mpo_socket_check_create_t, //
 	// Enable
 	.mpo_socket_check_listen = casper_mpo_socket_check_listen_t,
 	// .mpo_socket_check_poll = casper_mpo_socket_check_poll_t, // Enable
-	// .mpo_socket_check_receive = ... , // Enable
+	// for IPC .mpo_socket_check_receive =
+	// casper_mpo_socket_check_receive_t, // Enable
 	.mpo_socket_check_relabel = casper_mpo_socket_check_relabel_t,
-	.mpo_socket_check_send = casper_mpo_socket_check_send_t, // Enable
+	.mpo_socket_check_send = casper_mpo_socket_check_send_t, // TODO
 	.mpo_socket_check_stat = casper_mpo_socket_check_stat_t,
 	.mpo_socket_check_visible = casper_mpo_socket_check_visible_t,
 	/* syncache */
@@ -1327,8 +1324,7 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	// .mpo_vnode_check_lookup = casper_mpo_vnode_check_lookup_t, // Enable
 	.mpo_vnode_check_mmap = casper_mpo_vnode_check_mmap_t,
 	.mpo_vnode_check_mprotect = casper_mpo_vnode_check_mprotect_t,
-	.mpo_vnode_check_open =
-	    casper_mpo_vnode_check_open, // Can only open restrict files
+	.mpo_vnode_check_open = casper_mpo_vnode_check_open, // Can only open restrict files
 	.mpo_vnode_check_poll = casper_mpo_vnode_check_poll_t,
 	// .mpo_vnode_check_read = casper_mpo_vnode_check_read_t, // Enable
 	.mpo_vnode_check_readdir = casper_mpo_vnode_check_readdir_t,

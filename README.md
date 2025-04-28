@@ -39,6 +39,30 @@ make
 ./getaddr
 ```
 
+The output sholud look like this:
+```sh
+kola@freebsd:~/git_projects/mac_casper/test_program $ ./getadd
+Testing getaddrinfo for www.google.com:
+  IPv6: 2404:6800:4012:9::2004
+  IPv4: 142.250.204.36
+
+Testing getnameinfo for 142.250.72.196:
+  Hostname: sfo03s21-in-f4.1e100.net
+
+Testing gethostbyname for www.google.com:
+  IP: 142.250.204.36
+
+Testing gethostbyname2 for www.google.com (family: IPv4):
+  IP: 142.250.204.36
+
+Testing gethostbyaddr for 142.250.72.196:
+  Hostname: sfo03s21-in-f4.1e100.net
+Open failed
+Chdir failed
+```
+
+The last open and chdir failed because our mac module limit the process.
+
 ## Limit privileged
 
 ![image](https://github.com/user-attachments/assets/16e1e28b-5505-4208-ab16-e1e2e37fc3bd)
