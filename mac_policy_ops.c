@@ -84,11 +84,12 @@ casper_cred_relabel(struct ucred *cred, struct label *newlabel)
 		if (dest == NULL) {
 			return;
 
-		memset(dest, 0, sizeof(*dest));
-		SLOT_SET(cred->cr_label, dest);
-	}
+			memset(dest, 0, sizeof(*dest));
+			SLOT_SET(cred->cr_label, dest);
+		}
 
-	*dest = *source;
+		*dest = *source;
+	}
 }
 static void
 casper_cred_destroy_label(struct label *label)
@@ -1181,7 +1182,7 @@ casper_destroy(struct mac_policy_conf *mpc)
 /* Base structure */
 static struct mac_policy_ops caspe_mac_policy_ops = {
 	/* init */
-	.mpo_init = casper_init, // Enabled
+	.mpo_init = casper_init,       // Enabled
 	.mpo_destroy = casper_destroy, // Enabled
 	/* bpfdsec */
 	/* cred */
@@ -1324,7 +1325,8 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	// .mpo_vnode_check_lookup = casper_mpo_vnode_check_lookup_t, // Enable
 	.mpo_vnode_check_mmap = casper_mpo_vnode_check_mmap_t,
 	.mpo_vnode_check_mprotect = casper_mpo_vnode_check_mprotect_t,
-	.mpo_vnode_check_open = casper_mpo_vnode_check_open, // Can only open restrict files
+	.mpo_vnode_check_open =
+	    casper_mpo_vnode_check_open, // Can only open restrict files
 	.mpo_vnode_check_poll = casper_mpo_vnode_check_poll_t,
 	// .mpo_vnode_check_read = casper_mpo_vnode_check_read_t, // Enable
 	.mpo_vnode_check_readdir = casper_mpo_vnode_check_readdir_t,
