@@ -1871,7 +1871,7 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
     .mpo_pipe_check_read = casper_mpo_pipe_check_read_t,
     .mpo_pipe_check_relabel = casper_mpo_pipe_check_relabel_t,
     .mpo_pipe_check_stat = casper_mpo_pipe_check_stat_t,
-    .mpo_pipe_check_write = casper_mpo_pipe_check_write_t,
+    // .mpo_pipe_check_write = casper_mpo_pipe_check_write_t, // TODO test performance
     /* posixsem */
     .mpo_posixsem_check_getvalue = casper_mpo_posixsem_check_getvalue_t,
     .mpo_posixsem_check_open = casper_mpo_posixsem_check_open_t,
