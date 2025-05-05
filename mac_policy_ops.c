@@ -1184,13 +1184,8 @@ casper_destroy(struct mac_policy_conf *mpc)
 /* Base structure */
 static struct mac_policy_ops caspe_mac_policy_ops = {
 	/* init */
-<<<<<<< HEAD
 	.mpo_init = casper_init,       // Enable
 	.mpo_destroy = casper_destroy, // Enable
-=======
-	.mpo_init = casper_init,       // Enabled
-	.mpo_destroy = casper_destroy, // Enabled
->>>>>>> fd80c82 (Add performace codes)
 	/* bpfdsec */
 	/* cred */
 	// .mpo_cred_check_relabel = ... // Allow relabel
@@ -1276,14 +1271,15 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	/* socket */
 	.mpo_socket_check_accept = casper_mpo_socket_check_accept_t,
 	.mpo_socket_check_bind = casper_mpo_socket_check_bind_t,
-	.mpo_socket_check_connect = casper_mpo_socket_check_connect_t, // Check
+	.mpo_socket_check_connect =
+	    casper_mpo_socket_check_connect_t, // Check, TODO
 	// .mpo_socket_check_create = casper_mpo_socket_check_create_t, //
 	// Enable
 	.mpo_socket_check_listen = casper_mpo_socket_check_listen_t,
 	// .mpo_socket_check_poll = casper_mpo_socket_check_poll_t, // Enable
 	// .mpo_socket_check_receive = ... , // Enable
 	.mpo_socket_check_relabel = casper_mpo_socket_check_relabel_t,
-	.mpo_socket_check_send = casper_mpo_socket_check_send_t, // Enable
+	.mpo_socket_check_send = casper_mpo_socket_check_send_t, // Enable, TODO
 	.mpo_socket_check_stat = casper_mpo_socket_check_stat_t,
 	.mpo_socket_check_visible = casper_mpo_socket_check_visible_t,
 	/* syncache */
