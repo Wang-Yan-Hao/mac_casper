@@ -497,36 +497,36 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 		return 0;
 
 	if (!strcmp(obj->label, "dns")) {
-		printf("casper_mpo_socket_check_connect_t\n");
+		// printf("casper_mpo_socket_check_connect_t\n");
 
 		/* Flag */
 		bool ipv4 = true;
 		bool pass = false;
 		char ip_str[INET_ADDRSTRLEN]; // Allocate buffer for the IP
 					      // address string
-		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
+		// struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
 		struct sockaddr_in *sin = (struct sockaddr_in *)sa;
 
 		// Check if sockaddr is IPv4 or IPv6
 		if (sa->sa_family == AF_INET) {
 			inet_ntoa_r(sin->sin_addr,
 			    ip_str); // Convert the raw address to a string
-			printf("Connecting to IP (IPv4): %s\n",
-			    ip_str); // Print the IP address as a string
+				     // printf("Connecting to IP (IPv4): %s\n",
+			// ip_str); // Print the IP address as a string
 		} else if (sa->sa_family == AF_INET6) {
 			ipv4 = false;
 
-			printf("Connecting to IP (IPv6): ");
-			for (int i = 0; i < 16; i++) {
-				printf("%02x",
-				    sin6->sin6_addr
-					.s6_addr[i]); // Print raw IPv6 address
-						      // in hex
-				if (i < 15) {
-					printf(":");
-				}
-			}
-			printf("\n");
+			// printf("Connecting to IP (IPv6): ");
+			// for (int i = 0; i < 16; i++) {
+			// printf("%02x",
+			// sin6->sin6_addr
+			// .s6_addr[i]); // Print raw IPv6 address
+			//   in hex
+			// if (i < 15) {
+			// printf(":");
+			// }
+			// }
+			// printf("\n");
 		}
 
 		struct nameidata nd;
@@ -542,7 +542,7 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 		// Allocate buffer in kernel space
 		buf = (char *)malloc(BUF_SIZE, M_TEMP, M_WAITOK | M_ZERO);
 		if (!buf) {
-			printf("[Kernel] Failed to allocate buffer\n");
+			// printf("[Kernel] Failed to allocate buffer\n");
 			return 0;
 		}
 
@@ -550,7 +550,7 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 
 		error = namei(&nd);
 		if (error) {
-			printf("[Kernel] namei() failed: %d\n", error);
+			// printf("[Kernel] namei() failed: %d\n", error);
 			free(buf, M_TEMP);
 			return 0;
 		}
@@ -558,15 +558,15 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 		vp = nd.ni_vp;
 
 		if (vp->v_type != VREG) {
-			printf(
-			    "[Kernel] /etc/resolv.conf is not a regular file\n");
+			// printf(
+			// "[Kernel] /etc/resolv.conf is not a regular file\n");
 			vrele(vp);
 			free(buf, M_TEMP);
 			return 0;
 		}
 
 		// Read file contents
-		printf("[Kernel] Reading /etc/resolv.conf...\n");
+		// printf("[Kernel] Reading /etc/resolv.conf...\n");
 
 		while (nserv < MAX_NAMESERVERS) {
 			aiov.iov_base = buf;
@@ -589,17 +589,19 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 			    curthread->td_ucred);
 
 			if (error) {
-				printf("[Kernel] vnode type: %d\n", vp->v_type);
-				printf("[Kernel] vnode path: %s\n",
-				    nd.ni_cnd.cn_nameptr);
-				printf("[Kernel] Mount flags: 0x%lx\n",
-				    vp->v_mount->mnt_flag);
+				// printf("[Kernel] vnode type: %d\n",
+				// vp->v_type); printf("[Kernel] vnode path:
+				// %s\n",
+				//     nd.ni_cnd.cn_nameptr);
+				// printf("[Kernel] Mount flags: 0x%lx\n",
+				//     vp->v_mount->mnt_flag);
 
-				printf("[Kernel] auio.uio_resid %zd\n",
-				    auio.uio_resid);
-				printf("[Kernel] error number: %d\n", error);
-				printf("[Kernel] Error in vn_rdwr\n");
-				printf("[Kernel] vnode type: %d\n", vp->v_type);
+				// printf("[Kernel] auio.uio_resid %zd\n",
+				//     auio.uio_resid);
+				// printf("[Kernel] error number: %d\n", error);
+				// printf("[Kernel] Error in vn_rdwr\n");
+				// printf("[Kernel] vnode type: %d\n",
+				// vp->v_type);
 				return 0;
 			}
 
@@ -613,7 +615,7 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 			// Parse buffer for "nameserver" entries
 			char *line = buf;
 			while ((line = strsep(&buf, "\n")) != NULL) {
-				printf("[Kernel] Line %s\n", line);
+				// printf("[Kernel] Line %s\n", line);
 				if (strncmp(line, "nameserver", 10) == 0) {
 					char *cp = line + 10;
 
@@ -622,13 +624,13 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 						cp++;
 
 					if (*cp) { // If IP is present
-						printf(
-						    "[Kernel] Found nameserver: %s\n",
-						    cp);
+						// printf(
+						//     "[Kernel] Found
+						//     nameserver: %s\n", cp);
 
 						if (ipv4) {
-							printf("[IP] %s\n",
-							    ip_str);
+							// printf("[IP] %s\n",
+							//     ip_str);
 							if (!strncmp(cp, ip_str,
 								strlen(
 								    ip_str))) { // Fixed typo & logic
@@ -643,7 +645,7 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 		}
 
 		if (pass) {
-			printf("[Pass]\n");
+			// printf("[Pass]\n");
 		} else {
 			return 1;
 		}
@@ -1168,7 +1170,7 @@ casper_init(struct mac_policy_conf *conf)
 	zone_casper = uma_zcreate("mac_casper", sizeof(struct mac_casper), NULL,
 	    NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
 	if (zone_casper == NULL) {
-		printf("Failed to create uma zone for casper\n");
+		// printf("Failed to create uma zone for casper\n");
 		return;
 	}
 }
@@ -1279,7 +1281,8 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	// .mpo_socket_check_poll = casper_mpo_socket_check_poll_t, // Enable
 	// .mpo_socket_check_receive = ... , // Enable
 	.mpo_socket_check_relabel = casper_mpo_socket_check_relabel_t,
-	//.mpo_socket_check_send = casper_mpo_socket_check_send_t, // Enable, TODO
+	//.mpo_socket_check_send = casper_mpo_socket_check_send_t, // Enable,
+	// TODO
 	.mpo_socket_check_stat = casper_mpo_socket_check_stat_t,
 	.mpo_socket_check_visible = casper_mpo_socket_check_visible_t,
 	/* syncache */
