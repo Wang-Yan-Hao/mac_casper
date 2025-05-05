@@ -95,9 +95,8 @@ casper_cred_relabel(struct ucred *cred, struct label *newlabel)
 
 		bzero(dest, sizeof(*dest)); // Ensure zero-initialization
 		SLOT_SET(cred->cr_label, dest);
+		*dest = *source;
 	}
-
-	*dest = *source;
 }
 static void
 casper_cred_destroy_label(struct label *label)
@@ -1185,8 +1184,13 @@ casper_destroy(struct mac_policy_conf *mpc)
 /* Base structure */
 static struct mac_policy_ops caspe_mac_policy_ops = {
 	/* init */
+<<<<<<< HEAD
 	.mpo_init = casper_init,       // Enable
 	.mpo_destroy = casper_destroy, // Enable
+=======
+	.mpo_init = casper_init,       // Enabled
+	.mpo_destroy = casper_destroy, // Enabled
+>>>>>>> fd80c82 (Add performace codes)
 	/* bpfdsec */
 	/* cred */
 	// .mpo_cred_check_relabel = ... // Allow relabel
