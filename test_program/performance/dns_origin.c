@@ -12,11 +12,11 @@
 #include <errno.h>
 #include <time.h>
 
-#define ITERATIONS 1000
+#define ITERATIONS 4000
 
 int main() {
-    const char *hostname = "www.google.com";
-    const char *ip = "142.250.72.196";
+    const char *hostname = "freebsd.org";
+    const char *ip = "96.47.72.84";
     struct addrinfo hints, *res;
     struct sockaddr_in sa;
     struct in_addr addr;
@@ -33,7 +33,7 @@ int main() {
 
     mac_t mac_label;
     const char *label = "casper/dns";
-    for (int i = 0; i < ITERATIONS*200; i++) {
+    //for (int i = 0; i < ITERATIONS*200; i++) {
 
         if (mac_from_text(&mac_label, label) != 0) {
             printf("Failed to convert label from text\n");
@@ -46,7 +46,7 @@ int main() {
             mac_free(mac_label);
             return -1;
         }
-    }
+    //}
     mac_free(mac_label);
 
     clock_gettime(CLOCK_MONOTONIC, &end);

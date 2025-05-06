@@ -117,7 +117,9 @@ void test_gethostbyaddr(const char *ip) {
 
 int main() {
     const char *hostname = "www.google.com";
-    const char *ip = "142.250.72.196";
+    //const char *hostname = "freebsd.org";
+    const char *ip = "1.1.1.1";
+    //const char *ip = "96.47.72.84";
 
     mac_t mac_label;
     const char *label = "casper/dns";

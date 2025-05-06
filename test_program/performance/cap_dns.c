@@ -18,11 +18,11 @@
 #include <libcasper.h>
 #include <casper/cap_dns.h>
 
-#define ITERATIONS 1000
+#define ITERATIONS 6000
 
 int main() {
     const char *hostname = "www.google.com";
-    const char *ip = "142.250.72.196";
+    const char *ip = "1.1.1.1";
     struct addrinfo hints, *res;
     struct sockaddr_in sa;
     struct in_addr addr;

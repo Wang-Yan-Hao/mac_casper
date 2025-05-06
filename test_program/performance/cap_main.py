@@ -28,20 +28,20 @@ def get_filtered_average(values):
     return np.mean(values)  # If filtering doesn't work, return the mean of all values
 
 def main():
-    iterations = 200
+    iterations = 50
     results_origin = {"getaddrinfo": [], "getnameinfo": [], "gethostbyname": [], "gethostbyname2": [], "gethostbyaddr": []}
     results_origin_mac = {"getaddrinfo": [], "getnameinfo": [], "gethostbyname": [], "gethostbyname2": [], "gethostbyaddr": []}
 
     for _ in range(iterations):
-        print("Running dns_origin...")
-        output1 = run_program(["cpuset", "-l", "0", "./dns_origin"])
+        print("Running ls...")
+        output1 = run_program(["cpuset", "-l", "0", "ls"])
         times1 = parse_times(output1)
 
         for key in results_origin:
             if key in times1:
                 results_origin[key].append(times1[key])
 
-        print("Running dns_origin_mac...")
+        print("Running cap_dns...")
         output2 = run_program(["cpuset", "-l", "0", "./cap_dns"])
         times2 = parse_times(output2)
         for key in results_origin_mac:
