@@ -35,7 +35,7 @@ struct mac_casper {
 	char original_filename[40];
 };
 
-static const char *casper_label = "casper"; /* Module label */
+static const char *MAC_CASPER_LABEL_NAME = "casper"; /* Module label */
 static const char *casper_blocked_labels[] = {
 	/* List of blocked labels */
 	"dns",
@@ -112,7 +112,7 @@ casper_mpo_cred_internalize_label_t(struct label *label, char *element_name,
 {
 	struct mac_casper *memory;
 
-	if (strcmp(casper_label, element_name) != 0)
+	if (strcmp(MAC_CASPER_LABEL_NAME, element_name) != 0)
 		return 0;
 
 	memory = uma_zalloc(zone_casper, M_NOWAIT);
@@ -136,6 +136,9 @@ casper_mpo_cred_internalize_label_t(struct label *label, char *element_name,
 
 	// Set the allocated memory into the slot
 	SLOT_SET(label, memory);
+
+	// printf("casper_mpo_cred_internalize_label_t\n");
+
 	return 0;
 }
 static int
@@ -1183,6 +1186,13 @@ casper_destroy(struct mac_policy_conf *mpc)
 	}
 }
 
+static void
+casper_cred_init_label(struct label *label)
+{
+	// printf("casper_cred_init_label\n");
+	return;
+}
+
 /* Base structure */
 static struct mac_policy_ops caspe_mac_policy_ops = {
 	/* init */
@@ -1191,6 +1201,7 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	/* bpfdsec */
 	/* cred */
 	// .mpo_cred_check_relabel = ... // Allow relabel
+	.mpo_cred_init_label = casper_cred_init_label,
 	.mpo_cred_check_setaudit = casper_mpo_cred_check_setaudit_t,
 	.mpo_cred_check_setaudit_addr = casper_mpo_cred_check_setaudit_addr_t,
 	.mpo_cred_check_setauid = casper_mpo_cred_check_setauid_t,
