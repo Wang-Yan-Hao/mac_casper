@@ -23,31 +23,7 @@
 #include <security/mac/mac_policy.h>
 #include <security/mac/mac_syscalls.h>
 
-#define BUF_SIZE	 512 // Read in chunks
-#define MAX_NAMESERVERS	 10  // Limit how many nameservers we parse
-
-#define SLOT(l)		 ((struct mac_casper *)mac_label_get((l), casper_slot))
-#define SLOT_SET(l, val) (mac_label_set((l), casper_slot, (uintptr_t)(val)))
-
-/* My label structure */
-struct mac_casper {
-	char label[20];
-	char original_filename[40];
-};
-
-static const char *MAC_CASPER_LABEL_NAME = "casper"; /* Module label */
-static const char *casper_blocked_labels[] = {
-	/* List of blocked labels */
-	"dns",
-	// Add more labels here in the future
-	NULL // Sentinel to mark end of array
-};
-
-/* DNS */
-static const char *casper_dns_allowed_files_open[] = {
-	"/etc/nsswitch.conf", "/etc/hosts", "/etc/resolv.conf", "/etc/services",
-	NULL // Sentinel
-};
+#include "mac_policy_ops.h"
 
 static int casper_slot;
 static uma_zone_t zone_casper;
