@@ -440,34 +440,64 @@ service_start(struct service *service, int sock, int procfd)
 	}
 
 	/* Set label */
-
 	#include <sys/mac.h>
 	#include <errno.h>
+	#include <syslog.h>
+	#include <stdio.h>
+	#include <string.h>
+	#include <sys/param.h>
+	#include <sys/linker.h>
+	#include <sys/module.h>
+	// Avoid <sys/module.>h unused typedef warning
+	(void)sizeof(siginfo_t);
+	(void)sizeof(moduledata_t);
+	(void)sizeof(stack_t);
+	(void)sizeof(__siginfohandler_t *);
+	(void)sizeof(modeventtype_t);
+	(void)sizeof(sig_t);
+	(void)sizeof(sig_atomic_t);
 
-	if (mac_is_present("CaspeMAC")) {
+	// openlog("syslog_proces", LOG_CONS | LOG_PID, LOG_DAEMON);
+	// syslog(LOG_NOTICE, "Start openlog");
+
+	if (modfind("CaspeMAC") != -1) {
 		/* system.dns service */
 		if (!strcmp("system.dns", service->s_name)) {
+			// syslog(LOG_NOTICE, "Set dns label");
 			mac_t mac_label;
 			const char *label = "casper/dns";
-			// const char *label = "biba/low";
 
-			// Convert the text label to the internal mac_t format
 			if (mac_from_text(&mac_label, label) != 0) {
-				printf("Failed to convert label from text\n");
 				exit(-1);
 			}
 
 			int ret = 0;
-			// Apply the label to the current process
 			if ((ret = mac_set_proc(mac_label)) != 0) {
-				printf("Error: %s\n", strerror(errno));
 				mac_free(mac_label);
 				exit(-1);
 			}
 
 			mac_free(mac_label);
 		}
+		else if (!strcmp("system.fileargs", service->s_name)) {
+			// syslog(LOG_NOTICE, "Set fileargs label");
+			closelog();
 
+			mac_t mac_label;
+			const char *label = "casper/fileargs";
+
+			if (mac_from_text(&mac_label, label) != 0) {
+				exit(-1);
+			}
+
+			int ret = 0;
+			if ((ret = mac_set_proc(mac_label)) != 0) {
+				mac_free(mac_label);
+				exit(-1);
+			}
+
+			mac_free(mac_label);
+		}
 		/* other service ... */
 	}
 
