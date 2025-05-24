@@ -12,6 +12,8 @@ test_program/open_etc_hosts
 test_program/performance/cap_dns
 test_program/performance/dns_origin
 test_program/performance/dns_origin_mac
+test_program/fileargs/fileargs_demo
+test_program/fileargs/casper_fileargs_demo
 vnode_if.h
 vnode_if_newproto.h
 vnode_if_typedef.h
