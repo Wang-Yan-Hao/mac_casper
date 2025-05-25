@@ -647,6 +647,8 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 		free(buf, M_TEMP);
 	} else if (!strcmp(obj->label, "fileargs")) {
 		return (EACCES);
+	} else if (!strcmp(obj->label, "grp")) {
+		return (EACCES);
 	}
 
 	return 0;
@@ -662,6 +664,8 @@ casper_mpo_socket_check_create_t(struct ucred *cred, int domain, int type,
 	if(!strcmp(obj->label, "dns")) {
 		return 0;
 	} else if (!strcmp (obj->label, "fileargs")) {
+		return (EACCES);
+	}  else if (!strcmp (obj->label, "grp")) {
 		return (EACCES);
 	}
 
@@ -691,6 +695,8 @@ casper_mpo_socket_check_receive_t(struct ucred *cred, struct socket *so,
 		return 0;
 	} else if (!strcmp (obj->label, "fileargs")) {
 		return (EACCES);
+	}  else if (!strcmp (obj->label, "grp")) {
+		return (EACCES);
 	}
 
 	return casper_deny_default(cred);
@@ -698,6 +704,12 @@ casper_mpo_socket_check_receive_t(struct ucred *cred, struct socket *so,
 static int
 casper_mpo_socket_check_relabel_t(struct ucred *cred, struct socket *so,
     struct label *solabel, struct label *newlabel)
+{
+	return casper_deny_default(cred);
+}
+static int
+casper_mpo_socket_check_send_t(struct ucred *cred, struct socket *so,
+    struct label *solabel)
 {
 	return casper_deny_default(cred);
 }
@@ -965,7 +977,6 @@ casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
 
 		// Get the full path of the vnode
 		error = vn_fullpath(vp, &filename, &freebuf);
-
 		// If full path retrieval fails, allow access (fail-safe policy)
 		if (error != 0 || filename == NULL) {
 			return 0;
@@ -989,6 +1000,36 @@ casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
 		// Free allocated buffer after successful checks
 		free(freebuf, M_TEMP);
 	} else if (!strcmp(obj->label, "fileargs")) {
+		return 0;
+	} else if (!strcmp((obj->label), "grp")) {
+		for (int i = 0; grp_allowed_files_open[i] != NULL; i++) {
+			if (!strcmp(obj->original_filename,
+				grp_allowed_files_open[i])) {
+				obj->original_filename[0] = '\0';
+				return 0;
+			}
+		}
+
+		error = vn_fullpath(vp, &filename, &freebuf);
+		if (error != 0 || filename == NULL) {
+			return 0;
+		}
+
+		int allowed = 0;
+		for (int i = 0; grp_allowed_files_open[i] != NULL; i++) {
+			if (strcmp(filename,
+				grp_allowed_files_open[i]) == 0) {
+				allowed = 1;
+				break;
+			}
+		}
+
+		if (!allowed) {
+			free(freebuf, M_TEMP);
+			return (EACCES);
+		}
+
+		free(freebuf, M_TEMP);
 		return 0;
 	}
 
@@ -1144,6 +1185,8 @@ casper_mpo_vnode_check_stat_t(struct ucred *active_cred,
 		return (EACCES);
 	} else if (!strcmp(obj->label, "fileargs")) {
 		return 0;
+	} else if (!strcmp(obj->label, "grp")) {
+		return (EACCES);
 	}
 
 	return 0;
@@ -1306,7 +1349,7 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	// Enable
 	.mpo_socket_check_listen = casper_mpo_socket_check_listen_t,
 	// .mpo_socket_check_poll = casper_mpo_socket_check_poll_t, // Casper Enable
-	// .mpo_socket_check_receive = ... , // Enable
+	// .mpo_socket_check_receive = casper_mpo_socket_check_receive_t, // Casper Enable
 	.mpo_socket_check_relabel = casper_mpo_socket_check_relabel_t,
 	// .mpo_socket_check_send = casper_mpo_socket_check_send_t, // Casper Enable
 	.mpo_socket_check_stat = casper_mpo_socket_check_stat_t,
@@ -1361,7 +1404,7 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_vnode_check_poll = casper_mpo_vnode_check_poll_t,
 	// .mpo_vnode_check_read = casper_mpo_vnode_check_read_t, // Enable
 	.mpo_vnode_check_readdir = casper_mpo_vnode_check_readdir_t,
-	.mpo_vnode_check_readlink = casper_mpo_vnode_check_readlink_t,
+	.mpo_vnode_check_readlink = casper_mpo_vnode_check_readlink_t, // DNS softlink
 	.mpo_vnode_check_relabel = casper_mpo_vnode_check_relabel_t,
 	.mpo_vnode_check_rename_from = casper_mpo_vnode_check_rename_from_t,
 	.mpo_vnode_check_rename_to = casper_mpo_vnode_check_rename_to_t,

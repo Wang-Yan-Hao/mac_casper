@@ -19,6 +19,7 @@ static const char *casper_blocked_labels[] = {
 	/* List of blocked labels */
 	"dns",
     "fileargs",
+	"grp",
 	// Add more labels here in the future
 	NULL
 };
@@ -26,6 +27,12 @@ static const char *casper_blocked_labels[] = {
 /* DNS */
 static const char *casper_dns_allowed_files_open[] = {
 	"/etc/nsswitch.conf", "/etc/hosts", "/etc/resolv.conf", "/etc/services",
+	NULL // Sentinel
+};
+
+/* GRP */
+static const char *grp_allowed_files_open[] = {
+	"/etc/nsswitch.conf", "/etc/group", "/var/db/cache/group.cache",
 	NULL // Sentinel
 };
 
