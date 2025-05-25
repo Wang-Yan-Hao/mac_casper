@@ -15,6 +15,7 @@ test_program/performance/dns_origin_mac
 test_program/fileargs/fileargs_demo
 test_program/fileargs/casper_fileargs_demo
 test_program/grp/casper_grp_demo
+test_program/pwd/casper_pwd_demo
 vnode_if.h
 vnode_if_newproto.h
 vnode_if_typedef.h

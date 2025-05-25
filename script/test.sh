@@ -37,5 +37,12 @@ cd ../netdb
 make
 ./casper_netdb_demo || { echo "caspr_netdb_demo test FAILED"; exit 1; }
 
+# PWD Service Test
+echo ""
+echo ">>> Testing Casper pwd service"
+cd ../pwd
+make
+./casper_pwd_demo || { echo "caspr_netdb_demo test FAILED"; exit 1; }
+
 echo ""
 echo "=== All Casper service tests completed successfully ==="
