@@ -686,6 +686,8 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 		return (EACCES);
 	} else if (!strcmp(obj->label, "netdb")) {
 		return (EACCES);
+	} else if (!strcmp(obj->label, "pwd")) {
+		return (EACCES);
 	}
 
 	return 0;
@@ -705,6 +707,8 @@ casper_mpo_socket_check_create_t(struct ucred *cred, int domain, int type,
 	} else if (!strcmp(obj->label, "grp")) {
 		return (EACCES);
 	} else if (!strcmp(obj->label, "netdb")) {
+		return (EACCES);
+	} else if (!strcmp(obj->label, "pwd")) {
 		return (EACCES);
 	}
 
@@ -1010,9 +1014,12 @@ casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
 	} else if (strcmp(obj->label, "netdb") == 0) {
 		return casper_check_allowed_file(obj->original_filename, vp,
 		    netdb_allowed_files_open);
+	} else if (strcmp(obj->label, "pwd") == 0) {
+		return casper_check_allowed_file(obj->original_filename, vp,
+		    pwd_allowed_files_open);
 	}
 
-	return 0; // Allow access for other labels or conditions
+	return 0;
 }
 static int
 casper_mpo_vnode_check_poll_t(struct ucred *active_cred,
@@ -1167,6 +1174,8 @@ casper_mpo_vnode_check_stat_t(struct ucred *active_cred,
 	} else if (!strcmp(obj->label, "grp")) {
 		return (EACCES);
 	} else if (!strcmp(obj->label, "netdb")) {
+		return (EACCES);
+	} else if (!strcmp(obj->label, "pwd")) {
 		return (EACCES);
 	}
 

@@ -461,77 +461,40 @@ service_start(struct service *service, int sock, int procfd)
 	// syslog(LOG_NOTICE, "Start openlog");
 
 	if (modfind("CaspeMAC") != -1) {
-		/* system.dns service */
+		const char *label = NULL;
+
 		if (!strcmp("system.dns", service->s_name)) {
 			// syslog(LOG_NOTICE, "Set dns label");
-			mac_t mac_label;
-			const char *label = "casper/dns";
-
-			if (mac_from_text(&mac_label, label) != 0) {
-				exit(-1);
-			}
-
-			int ret = 0;
-			if ((ret = mac_set_proc(mac_label)) != 0) {
-				mac_free(mac_label);
-				exit(-1);
-			}
-
-			mac_free(mac_label);
+			label = "casper/dns";
 		}
 		else if (!strcmp("system.fileargs", service->s_name)) {
 			// syslog(LOG_NOTICE, "Set fileargs label");
-
-			mac_t mac_label;
-			const char *label = "casper/fileargs";
-
-			if (mac_from_text(&mac_label, label) != 0) {
-				exit(-1);
-			}
-
-			int ret = 0;
-			if ((ret = mac_set_proc(mac_label)) != 0) {
-				mac_free(mac_label);
-				exit(-1);
-			}
-
-			mac_free(mac_label);
+			label = "casper/fileargs";
 		} else if (!strcmp("system.grp", service->s_name)) {
 			// syslog(LOG_NOTICE, "Set grp label");
-
-			mac_t mac_label;
-			const char *label = "casper/grp";
-
-			if (mac_from_text(&mac_label, label) != 0) {
-				exit(-1);
-			}
-
-			int ret = 0;
-			if ((ret = mac_set_proc(mac_label)) != 0) {
-				mac_free(mac_label);
-				exit(-1);
-			}
-
-			mac_free(mac_label);
+			label = "casper/grp";
 		} else if (!strcmp("system.netdb", service->s_name)) {
 			// syslog(LOG_NOTICE, "Set netdb label");
+			label = "casper/netdb";
+		} else if (!strcmp("system.pwd", service->s_name)) {
+			// syslog(LOG_NOTICE, "Set pwd label");
+			label = "casper/pwd";
+		}
+		/* other service ... */
 
+		if (label != NULL) {
+			// syslog(LOG_NOTICE, "Start set label");
 			mac_t mac_label;
-			const char *label = "casper/netdb";
+			if (mac_from_text(&mac_label, label) != 0)
+				exit(EXIT_FAILURE);
 
-			if (mac_from_text(&mac_label, label) != 0) {
-				exit(-1);
-			}
-
-			int ret = 0;
-			if ((ret = mac_set_proc(mac_label)) != 0) {
+			if (mac_set_proc(mac_label) != 0) {
 				mac_free(mac_label);
-				exit(-1);
+				exit(EXIT_FAILURE);
 			}
 
 			mac_free(mac_label);
 		}
-		/* other service ... */
 	}
 
 	// closelog();

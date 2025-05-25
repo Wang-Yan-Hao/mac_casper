@@ -43,4 +43,10 @@ static const char *netdb_allowed_files_open[] = {
 	NULL // Sentinel
 };
 
+/* NETDB */
+static const char *pwd_allowed_files_open[] = {
+	"/etc/nsswitch.conf", "/etc/spwd.db", "/etc/pwd.db",
+	NULL // Sentinel
+};
+
 #endif // CASPER_MAC_H
