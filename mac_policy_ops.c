@@ -29,6 +29,16 @@ static int casper_slot;
 static uma_zone_t zone_casper;
 
 /* Helper function */
+static inline struct mac_casper *
+casper_get_label(struct ucred *cred)
+{
+    if (cred == NULL || cred->cr_label == NULL)
+        return NULL;
+
+    struct mac_casper *label = SLOT(cred->cr_label);
+    return label;
+}
+
 static int
 casper_deny_default(const struct ucred *cred)
 {
@@ -86,6 +96,10 @@ static int
 casper_mpo_cred_internalize_label_t(struct label *label, char *element_name,
     char *element_data, int *claimed)
 {
+	// printf("casper_mpo_cred_internalize_label_t start\n");
+	// printf("element_name: %s\n", element_name);
+	// printf("element_data: %s\n", element_data);
+
 	struct mac_casper *memory;
 
 	if (strcmp(MAC_CASPER_LABEL_NAME, element_name) != 0)
@@ -113,8 +127,7 @@ casper_mpo_cred_internalize_label_t(struct label *label, char *element_name,
 	// Set the allocated memory into the slot
 	SLOT_SET(label, memory);
 
-	// printf("casper_mpo_cred_internalize_label_t\n");
-
+	// printf("casper_mpo_cred_internalize_label_t finish\n");
 	return 0;
 }
 static int
@@ -626,12 +639,14 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 		if (pass) {
 			// printf("[Pass]\n");
 		} else {
-			return 1;
+			return (EACCES);
 		}
 
 		// Cleanup
 		vrele(vp);
 		free(buf, M_TEMP);
+	} else if (!strcmp(obj->label, "fileargs")) {
+		return (EACCES);
 	}
 
 	return 0;
@@ -640,7 +655,17 @@ static int
 casper_mpo_socket_check_create_t(struct ucred *cred, int domain, int type,
     int protocol)
 {
-	return casper_deny_default(cred);
+	struct mac_casper *obj = casper_get_label(cred);
+	if (obj== NULL)
+		return 0;
+
+	if(!strcmp(obj->label, "dns")) {
+		return 0;
+	} else if (!strcmp (obj->label, "fileargs")) {
+		return (EACCES);
+	}
+
+	return 0;
 }
 static int
 casper_mpo_socket_check_listen_t(struct ucred *cred, struct socket *so,
@@ -658,17 +683,21 @@ static int
 casper_mpo_socket_check_receive_t(struct ucred *cred, struct socket *so,
     struct label *solabel)
 {
+	struct mac_casper *obj = casper_get_label(cred);
+	if (obj== NULL)
+		return 0;
+
+	if(!strcmp(obj->label, "dns")) {
+		return 0;
+	} else if (!strcmp (obj->label, "fileargs")) {
+		return (EACCES);
+	}
+
 	return casper_deny_default(cred);
 }
 static int
 casper_mpo_socket_check_relabel_t(struct ucred *cred, struct socket *so,
     struct label *solabel, struct label *newlabel)
-{
-	return casper_deny_default(cred);
-}
-static int
-casper_mpo_socket_check_send_t(struct ucred *cred, struct socket *so,
-    struct label *solabel)
 {
 	return casper_deny_default(cred);
 }
@@ -912,17 +941,16 @@ static int
 casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
     struct label *label, int acc_mode)
 {
+	// printf("casper_mpo_vnode_check_open start\n");
 	char *filename = NULL, *freebuf = NULL;
 	int error;
 
-	if (cred == NULL || cred->cr_label == NULL) {
-		return 0;
-	}
-
-	struct mac_casper *obj = SLOT(cred->cr_label);
+	struct mac_casper *obj = casper_get_label(cred);
 	if (obj == NULL) {
 		return 0;
 	}
+	// printf("casper_mpo_vnode_check_open: obj != NULL\n");
+	// printf("casper_mpo_vnode_check_open: label %s\n", obj->label);
 
 	// Check for the specific label "dns"
 	if (!strcmp(obj->label, "dns")) {
@@ -960,6 +988,8 @@ casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
 
 		// Free allocated buffer after successful checks
 		free(freebuf, M_TEMP);
+	} else if (!strcmp(obj->label, "fileargs")) {
+		return 0;
 	}
 
 	return 0; // Allow access for other labels or conditions
@@ -1106,7 +1136,17 @@ static int
 casper_mpo_vnode_check_stat_t(struct ucred *active_cred,
     struct ucred *file_cred, struct vnode *vp, struct label *vplabel)
 {
-	return casper_deny_default(active_cred);
+	struct mac_casper *obj = casper_get_label(active_cred);
+	if (obj == NULL)
+		return 0;
+
+	if (!strcmp(obj->label, "dns")) {
+		return (EACCES);
+	} else if (!strcmp(obj->label, "fileargs")) {
+		return 0;
+	}
+
+	return 0;
 }
 static int
 casper_mpo_vnode_check_unlink_t(struct ucred *cred, struct vnode *dvp,
@@ -1261,15 +1301,14 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_socket_check_accept = casper_mpo_socket_check_accept_t,
 	.mpo_socket_check_bind = casper_mpo_socket_check_bind_t,
 	.mpo_socket_check_connect =
-	    casper_mpo_socket_check_connect_t, // Check, TODO
-	// .mpo_socket_check_create = casper_mpo_socket_check_create_t, //
+	    casper_mpo_socket_check_connect_t, // Check
+	.mpo_socket_check_create = casper_mpo_socket_check_create_t, //
 	// Enable
 	.mpo_socket_check_listen = casper_mpo_socket_check_listen_t,
-	// .mpo_socket_check_poll = casper_mpo_socket_check_poll_t, // Enable
+	// .mpo_socket_check_poll = casper_mpo_socket_check_poll_t, // Casper Enable
 	// .mpo_socket_check_receive = ... , // Enable
 	.mpo_socket_check_relabel = casper_mpo_socket_check_relabel_t,
-	//.mpo_socket_check_send = casper_mpo_socket_check_send_t, // Enable,
-	// TODO
+	// .mpo_socket_check_send = casper_mpo_socket_check_send_t, // Casper Enable
 	.mpo_socket_check_stat = casper_mpo_socket_check_stat_t,
 	.mpo_socket_check_visible = casper_mpo_socket_check_visible_t,
 	/* syncache */

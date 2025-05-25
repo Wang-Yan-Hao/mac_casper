@@ -18,6 +18,7 @@ struct mac_casper {
 static const char *casper_blocked_labels[] = {
 	/* List of blocked labels */
 	"dns",
+    "fileargs",
 	// Add more labels here in the future
 	NULL
 };
