@@ -35,14 +35,21 @@ echo ""
 echo ">>> Testing Casper netdb service"
 cd ../netdb
 make
-./casper_netdb_demo || { echo "caspr_netdb_demo test FAILED"; exit 1; }
+./casper_netdb_demo || { echo "casper_netdb_demo test FAILED"; exit 1; }
 
 # PWD Service Test
 echo ""
 echo ">>> Testing Casper pwd service"
 cd ../pwd
 make
-./casper_pwd_demo || { echo "caspr_netdb_demo test FAILED"; exit 1; }
+./casper_pwd_demo || { echo "casper_pwd_demo test FAILED"; exit 1; }
+
+# SYSCTL Service Test
+echo ""
+echo ">>> Testing Casper sysctl service"
+cd ../sysctl
+make
+./casper_sysctl_demo || { echo "casper_sysctl_demo test FAILED"; exit 1; }
 
 echo ""
 echo "=== All Casper service tests completed successfully ==="
