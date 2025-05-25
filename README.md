@@ -39,6 +39,7 @@ Below show how to test
 cd test_program
 make
 ./getaddr
+```
 
 The output sholud look like this:
 ```sh
@@ -63,6 +64,11 @@ Chdir failed
 ```
 
 The last open and chdir failed because our mac module limit the process.
+
+To run all tests, you can run with
+```sh
+sh script/test.sh
+```
 
 ## Limit privileged
 
