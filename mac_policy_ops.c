@@ -649,6 +649,8 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 		return (EACCES);
 	} else if (!strcmp(obj->label, "grp")) {
 		return (EACCES);
+	} else if (!strcmp(obj->label, "netdb")) {
+		return (EACCES);
 	}
 
 	return 0;
@@ -666,6 +668,8 @@ casper_mpo_socket_check_create_t(struct ucred *cred, int domain, int type,
 	} else if (!strcmp (obj->label, "fileargs")) {
 		return (EACCES);
 	}  else if (!strcmp (obj->label, "grp")) {
+		return (EACCES);
+	} else if (!strcmp(obj->label, "netdb")) {
 		return (EACCES);
 	}
 
@@ -1031,6 +1035,36 @@ casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
 
 		free(freebuf, M_TEMP);
 		return 0;
+	} else if (!strcmp((obj->label), "netdb")) {
+		for (int i = 0; netdb_allowed_files_open[i] != NULL; i++) {
+			if (!strcmp(obj->original_filename,
+				netdb_allowed_files_open[i])) {
+				obj->original_filename[0] = '\0';
+				return 0;
+			}
+		}
+
+		error = vn_fullpath(vp, &filename, &freebuf);
+		if (error != 0 || filename == NULL) {
+			return 0;
+		}
+
+		int allowed = 0;
+		for (int i = 0; netdb_allowed_files_open[i] != NULL; i++) {
+			if (strcmp(filename,
+				netdb_allowed_files_open[i]) == 0) {
+				allowed = 1;
+				break;
+			}
+		}
+
+		if (!allowed) {
+			free(freebuf, M_TEMP);
+			return (EACCES);
+		}
+
+		free(freebuf, M_TEMP);
+		return 0;
 	}
 
 	return 0; // Allow access for other labels or conditions
@@ -1186,6 +1220,8 @@ casper_mpo_vnode_check_stat_t(struct ucred *active_cred,
 	} else if (!strcmp(obj->label, "fileargs")) {
 		return 0;
 	} else if (!strcmp(obj->label, "grp")) {
+		return (EACCES);
+	} else if (!strcmp(obj->label, "netdb")) {
 		return (EACCES);
 	}
 
@@ -1415,7 +1451,7 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_vnode_check_setmode = casper_mpo_vnode_check_setmode_t,
 	.mpo_vnode_check_setowner = casper_mpo_vnode_check_setowner_t,
 	.mpo_vnode_check_setutimes = casper_mpo_vnode_check_setutimes_t,
-	.mpo_vnode_check_stat = casper_mpo_vnode_check_stat_t,
+	.mpo_vnode_check_stat = casper_mpo_vnode_check_stat_t, // FILEARGS lstat
 	.mpo_vnode_check_unlink = casper_mpo_vnode_check_unlink_t,
 	.mpo_vnode_check_write = casper_mpo_vnode_check_write_t,
 	.mpo_vnode_create_extattr = casper_mpo_vnode_create_extattr_t,

@@ -513,6 +513,23 @@ service_start(struct service *service, int sock, int procfd)
 			}
 
 			mac_free(mac_label);
+		} else if (!strcmp("system.netdb", service->s_name)) {
+			// syslog(LOG_NOTICE, "Set netdb label");
+
+			mac_t mac_label;
+			const char *label = "casper/netdb";
+
+			if (mac_from_text(&mac_label, label) != 0) {
+				exit(-1);
+			}
+
+			int ret = 0;
+			if ((ret = mac_set_proc(mac_label)) != 0) {
+				mac_free(mac_label);
+				exit(-1);
+			}
+
+			mac_free(mac_label);
 		}
 		/* other service ... */
 	}

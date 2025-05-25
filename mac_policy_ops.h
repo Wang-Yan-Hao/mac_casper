@@ -20,6 +20,7 @@ static const char *casper_blocked_labels[] = {
 	"dns",
     "fileargs",
 	"grp",
+	"netdb",
 	// Add more labels here in the future
 	NULL
 };
@@ -33,6 +34,12 @@ static const char *casper_dns_allowed_files_open[] = {
 /* GRP */
 static const char *grp_allowed_files_open[] = {
 	"/etc/nsswitch.conf", "/etc/group", "/var/db/cache/group.cache",
+	NULL // Sentinel
+};
+
+/* NETDB */
+static const char *netdb_allowed_files_open[] = {
+	"/etc/nsswitch.conf", "/etc/protocols",
 	NULL // Sentinel
 };
 
