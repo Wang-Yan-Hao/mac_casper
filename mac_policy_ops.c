@@ -688,6 +688,8 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 		return (EACCES);
 	} else if (!strcmp(obj->label, "pwd")) {
 		return (EACCES);
+	} else if (!strcmp(obj->label, "sysctl")) {
+		return (EACCES);
 	}
 
 	return 0;
@@ -709,6 +711,8 @@ casper_mpo_socket_check_create_t(struct ucred *cred, int domain, int type,
 	} else if (!strcmp(obj->label, "netdb")) {
 		return (EACCES);
 	} else if (!strcmp(obj->label, "pwd")) {
+		return (EACCES);
+	} else if (!strcmp(obj->label, "sysctl")) {
 		return (EACCES);
 	}
 
@@ -814,6 +818,15 @@ static int
 casper_mpo_system_check_sysctl_t(struct ucred *cred, struct sysctl_oid *oidp,
     void *arg1, int arg2, struct sysctl_req *req)
 {
+	struct mac_casper *obj = casper_get_label(cred);
+	if (obj == NULL) {
+		return 0;
+	}
+
+	if (!strcmp(obj->label, "sysctl")) {
+		return 0;
+	}
+
 	return casper_deny_default(cred);
 }
 /* sysvmsg */
@@ -1017,6 +1030,9 @@ casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
 	} else if (strcmp(obj->label, "pwd") == 0) {
 		return casper_check_allowed_file(obj->original_filename, vp,
 		    pwd_allowed_files_open);
+	} else if (!strcmp(obj->label, "sysctl")) {
+		return casper_check_allowed_file(obj->original_filename, vp,
+		    sysctl_allowed_files_open);
 	}
 
 	return 0;
@@ -1176,6 +1192,8 @@ casper_mpo_vnode_check_stat_t(struct ucred *active_cred,
 	} else if (!strcmp(obj->label, "netdb")) {
 		return (EACCES);
 	} else if (!strcmp(obj->label, "pwd")) {
+		return (EACCES);
+	} else if (!strcmp(obj->label, "sysctl")) {
 		return (EACCES);
 	}
 

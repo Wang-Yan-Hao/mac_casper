@@ -21,6 +21,7 @@ static const char *casper_blocked_labels[] = {
     "fileargs",
 	"grp",
 	"netdb",
+	"sysctl",
 	// Add more labels here in the future
 	NULL
 };
@@ -43,9 +44,15 @@ static const char *netdb_allowed_files_open[] = {
 	NULL // Sentinel
 };
 
-/* NETDB */
+/* PWD */
 static const char *pwd_allowed_files_open[] = {
 	"/etc/nsswitch.conf", "/etc/spwd.db", "/etc/pwd.db",
+	NULL // Sentinel
+};
+
+/* SYSCTL */
+static const char *sysctl_allowed_files_open[] = {
+	"/etc/pwd.db",
 	NULL // Sentinel
 };
 

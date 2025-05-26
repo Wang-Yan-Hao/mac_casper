@@ -479,6 +479,9 @@ service_start(struct service *service, int sock, int procfd)
 		} else if (!strcmp("system.pwd", service->s_name)) {
 			// syslog(LOG_NOTICE, "Set pwd label");
 			label = "casper/pwd";
+		} else if (!strcmp("system.sysctl", service->s_name)) {
+			// syslog(LOG_NOTICE, "Set sysctl label");
+			label = "casper/sysctl";
 		}
 		/* other service ... */
 
