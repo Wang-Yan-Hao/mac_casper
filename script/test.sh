@@ -51,5 +51,13 @@ cd ../sysctl
 make
 ./casper_sysctl_demo || { echo "casper_sysctl_demo test FAILED"; exit 1; }
 
+# SYSLOG Service Test
+echo ""
+echo ">>> Testing Casper syslog service"
+cd ../syslog
+make
+./casper_syslog_demo || { echo "casper_syslog_demo test FAILED"; exit 1; }
+tail -n 2 /var/log/messages
+
 echo ""
 echo "=== All Casper service tests completed successfully ==="
