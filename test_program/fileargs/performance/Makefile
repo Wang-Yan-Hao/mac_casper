@@ -1,9 +1,4 @@
 all:
-	cc -o fileargs_demo a.c -lcasper -lcap_fileargs
-
-	#cc dns_origin.c -static -o dns_origin -O0
-	#cc dns_origin.c -D MAC -static -o dns_origin_mac -O0
-
-
+	cc -o fileargs_perf fileargs_perf.c -lcasper -lcap_fileargs
 
 
