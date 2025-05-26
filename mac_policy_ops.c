@@ -43,6 +43,9 @@ static int
 casper_check_allowed_file(char *original_filename, struct vnode *vp,
     const char *const *allowed_paths)
 {
+	if (vp == NULL)
+		return 0;
+
 	char *filename = NULL, *freebuf = NULL;
 	int error;
 
