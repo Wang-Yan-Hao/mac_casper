@@ -137,11 +137,25 @@ casper_mpo_cred_internalize_label_t(struct label *label, char *element_name,
 	// printf("casper_mpo_cred_internalize_label_t start\n");
 	// printf("element_name: %s\n", element_name);
 	// printf("element_data: %s\n", element_data);
-
 	struct mac_casper *memory;
+
+	if (element_data == NULL || element_name == NULL) {
+		return (EACCES);
+	}
 
 	if (strcmp(MAC_CASPER_LABEL_NAME, element_name) != 0)
 		return 0;
+
+	int flag = 0;
+	for (int i = 0; casper_blocked_labels[i] != NULL; i++) {
+		if (!strcmp(element_data, casper_blocked_labels[i])) {
+			flag = 1;
+		}
+	}
+
+	if (flag == 0) {
+		return (EACCES);
+	}
 
 	memory = uma_zalloc(zone_casper, M_NOWAIT);
 	if (memory == NULL) {
@@ -152,9 +166,7 @@ casper_mpo_cred_internalize_label_t(struct label *label, char *element_name,
 	memset(memory, 0, sizeof(struct mac_casper));
 
 	// Safely copy the label from element_data (ensure null termination)
-	if (element_data != NULL) {
-		strlcpy(memory->label, element_data, sizeof(memory->label));
-	}
+	strlcpy(memory->label, element_data, sizeof(memory->label));
 
 	// Ensure original_filename is an empty string
 	memory->original_filename[0] = '\0';

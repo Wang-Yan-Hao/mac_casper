@@ -21,7 +21,9 @@ static const char *casper_blocked_labels[] = {
     "fileargs",
 	"grp",
 	"netdb",
+	"pwd",
 	"sysctl",
+	"syslog",
 	// Add more labels here in the future
 	NULL
 };
