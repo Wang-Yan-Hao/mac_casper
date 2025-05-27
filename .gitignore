@@ -18,6 +18,7 @@ test_program/fileargs/performance/fileargs_perf
 test_program/grp/casper_grp_demo
 test_program/grp/performance/casper_grp_perf
 test_program/netdb/casper_netdb_demo
+test_program/netdb/performance/casper_netdb_perf
 test_program/pwd/casper_pwd_demo
 test_program/sysctl/casper_sysctl_demo
 test_program/syslog/casper_syslog_demo
