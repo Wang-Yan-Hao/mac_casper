@@ -22,6 +22,7 @@ test_program/netdb/performance/casper_netdb_perf
 test_program/pwd/casper_pwd_demo
 test_program/pwd/performance/casper_pwd_perf
 test_program/sysctl/casper_sysctl_demo
+test_program/sysctl/performance/casper_sysctl_perf
 test_program/syslog/casper_syslog_demo
 vnode_if.h
 vnode_if_newproto.h
