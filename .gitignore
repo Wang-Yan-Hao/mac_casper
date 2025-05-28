@@ -20,6 +20,7 @@ test_program/grp/performance/casper_grp_perf
 test_program/netdb/casper_netdb_demo
 test_program/netdb/performance/casper_netdb_perf
 test_program/pwd/casper_pwd_demo
+test_program/pwd/performance/casper_pwd_perf
 test_program/sysctl/casper_sysctl_demo
 test_program/syslog/casper_syslog_demo
 vnode_if.h
