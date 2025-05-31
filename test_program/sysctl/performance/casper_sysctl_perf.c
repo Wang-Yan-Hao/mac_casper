@@ -14,7 +14,13 @@
 #include <libcasper.h>
 #include <casper/cap_sysctl.h>
 
-#define ITERATIONS 10000
+#if defined(__aarch64__)
+	#define ITERATIONS 20000
+#elif defined(__amd64__)
+	#define ITERATIONS 100000
+#else
+	#define ITERATIONS 1
+#endif
 
 static double time_diff(struct timespec start, struct timespec end) {
     return (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;

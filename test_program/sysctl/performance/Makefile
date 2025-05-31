@@ -1,2 +1,2 @@
 all:
-	cc -o casper_sysctl_perf casper_sysctl_perf.c -lcasper -lcap_sysctl
+	cc -o casper_sysctl_perf casper_sysctl_perf.c -O0 -lcasper -lcap_sysctl

@@ -12,7 +12,14 @@
 #include <libcasper.h>
 #include <casper/cap_grp.h>
 
-#define ITERATIONS 20000
+#if defined(__aarch64__)
+	#define ITERATIONS 10000
+#elif defined(__amd64__)
+	#define ITERATIONS 100000
+#else
+	#define ITERATIONS 1
+#endif
+
 #define BUF_SIZE 1024
 
 static double time_diff(struct timespec start, struct timespec end) {
