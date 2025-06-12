@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/domain.h>
 #include <sys/fcntl.h>
 #include <sys/kernel.h>
 #include <sys/mac.h>
@@ -9,7 +10,9 @@
 #include <sys/mount.h>
 #include <sys/namei.h>
 #include <sys/proc.h>
+#include <sys/protosw.h>
 #include <sys/socket.h> // For sockaddr (generic)
+#include <sys/socketvar.h>
 #include <sys/vnode.h>
 
 #include <vm/vm.h>
@@ -750,7 +753,42 @@ static int
 casper_mpo_socket_check_poll_t(struct ucred *cred, struct socket *so,
     struct label *solabel)
 {
-	return casper_deny_default(cred);
+	struct mac_casper *obj = casper_get_label(cred);
+	if (obj == NULL)
+		return 0;
+
+	if (!strcmp(obj->label, "fileargs")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "grp")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "netdb")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "pwd")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "sysctl")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "syslog")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+
+	return 0;
 }
 static int
 casper_mpo_socket_check_receive_t(struct ucred *cred, struct socket *so,
@@ -760,15 +798,38 @@ casper_mpo_socket_check_receive_t(struct ucred *cred, struct socket *so,
 	if (obj == NULL)
 		return 0;
 
-	if (!strcmp(obj->label, "dns")) {
-		return 0;
-	} else if (!strcmp(obj->label, "fileargs")) {
+	if (!strcmp(obj->label, "fileargs")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
 		return (EACCES);
-	} else if (!strcmp(obj->label, "grp")) {
+	}
+	else if (!strcmp(obj->label, "grp")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "netdb")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "pwd")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "sysctl")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "syslog")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
 		return (EACCES);
 	}
 
-	return casper_deny_default(cred);
+	return 0;
 }
 static int
 casper_mpo_socket_check_relabel_t(struct ucred *cred, struct socket *so,
@@ -780,7 +841,42 @@ static int
 casper_mpo_socket_check_send_t(struct ucred *cred, struct socket *so,
     struct label *solabel)
 {
-	return casper_deny_default(cred);
+	struct mac_casper *obj = casper_get_label(cred);
+	if (obj == NULL)
+		return 0;
+
+	if (!strcmp(obj->label, "fileargs")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "grp")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "netdb")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "pwd")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "sysctl")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "syslog")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+
+	return 0;
 }
 static int
 casper_mpo_socket_check_stat_t(struct ucred *cred, struct socket *so,
@@ -1057,7 +1153,7 @@ casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
 		    sysctl_allowed_files_open);
 	} else if (!strcmp(obj->label, "syslog")) {
 		return casper_check_allowed_file(obj->original_filename, vp,
-			syslog_allowed_files_open);
+		    syslog_allowed_files_open);
 	}
 
 	return 0;
@@ -1382,11 +1478,11 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_socket_check_create = casper_mpo_socket_check_create_t,   //
 	// Enable
 	.mpo_socket_check_listen = casper_mpo_socket_check_listen_t,
-	// .mpo_socket_check_poll = casper_mpo_socket_check_poll_t, // Casper
-	// Enable .mpo_socket_check_receive = casper_mpo_socket_check_receive_t,
+	.mpo_socket_check_poll = casper_mpo_socket_check_poll_t, // Casper
+	.mpo_socket_check_receive = casper_mpo_socket_check_receive_t,
 	// // Casper Enable
 	.mpo_socket_check_relabel = casper_mpo_socket_check_relabel_t,
-	// .mpo_socket_check_send = casper_mpo_socket_check_send_t, // Casper
+	.mpo_socket_check_send = casper_mpo_socket_check_send_t, // Casper
 	// Enable
 	.mpo_socket_check_stat = casper_mpo_socket_check_stat_t,
 	.mpo_socket_check_visible = casper_mpo_socket_check_visible_t,
