@@ -482,6 +482,8 @@ service_start(struct service *service, int sock, int procfd)
 		} else if (!strcmp("system.sysctl", service->s_name)) {
 			// syslog(LOG_NOTICE, "Set sysctl label");
 			label = "casper/sysctl";
+		} else if (!strcmp("system.syslog", service->s_name)) {
+			label = "casper/syslog";
 		}
 		/* other service ... */
 

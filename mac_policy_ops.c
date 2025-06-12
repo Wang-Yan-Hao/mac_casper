@@ -705,6 +705,8 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 		return (EACCES);
 	} else if (!strcmp(obj->label, "sysctl")) {
 		return (EACCES);
+	} else if (!strcmp(obj->label, "syslog")) {
+		return 0;
 	}
 
 	return 0;
@@ -729,6 +731,11 @@ casper_mpo_socket_check_create_t(struct ucred *cred, int domain, int type,
 		return (EACCES);
 	} else if (!strcmp(obj->label, "sysctl")) {
 		return (EACCES);
+	} else if (!strcmp(obj->label, "syslog")) {
+		if (domain != PF_UNIX) {
+			return (EACCES);
+		}
+		return 0;
 	}
 
 	return 0;
@@ -1048,6 +1055,9 @@ casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
 	} else if (!strcmp(obj->label, "sysctl")) {
 		return casper_check_allowed_file(obj->original_filename, vp,
 		    sysctl_allowed_files_open);
+	} else if (!strcmp(obj->label, "syslog")) {
+		return casper_check_allowed_file(obj->original_filename, vp,
+			syslog_allowed_files_open);
 	}
 
 	return 0;
@@ -1209,6 +1219,8 @@ casper_mpo_vnode_check_stat_t(struct ucred *active_cred,
 	} else if (!strcmp(obj->label, "pwd")) {
 		return (EACCES);
 	} else if (!strcmp(obj->label, "sysctl")) {
+		return (EACCES);
+	} else if (!strcmp(obj->label, "syslog")) {
 		return (EACCES);
 	}
 

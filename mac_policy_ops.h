@@ -58,4 +58,12 @@ static const char *sysctl_allowed_files_open[] = {
 	NULL // Sentinel
 };
 
+/* SYSLOG */
+static const char *syslog_allowed_files_open[] = {
+	"/var/run/log",
+	"/etc/localtime",
+	"/etc/pwd.db",
+	NULL // Sentinel
+};
+
 #endif // CASPER_MAC_H
