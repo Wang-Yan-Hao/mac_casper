@@ -757,7 +757,12 @@ casper_mpo_socket_check_poll_t(struct ucred *cred, struct socket *so,
 	if (obj == NULL)
 		return 0;
 
-	if (!strcmp(obj->label, "fileargs")) {
+	if (!strcmp(obj->label, "dns")) {
+		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
+			return 0;
+		return (EACCES);
+	}
+	else if (!strcmp(obj->label, "fileargs")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
