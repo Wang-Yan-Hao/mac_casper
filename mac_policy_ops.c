@@ -1168,6 +1168,14 @@ static int
 casper_mpo_vnode_check_read_t(struct ucred *active_cred,
     struct ucred *file_cred, struct vnode *vp, struct label *vplabel)
 {
+	struct mac_casper *obj = casper_get_label(active_cred);
+	if (obj == NULL) {
+		return 0;
+	}
+
+	if (strcmp(obj->label, "fileargs") == 0) {
+		return (EACCES);
+	}
 	return 0; // Allow other access
 }
 static int
