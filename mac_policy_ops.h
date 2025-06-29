@@ -1,9 +1,6 @@
 #ifndef CASPER_MAC_H
 #define CASPER_MAC_H
 
-#define BUF_SIZE	 512 // Read in chunks
-#define MAX_NAMESERVERS	 10  // Limit how many nameservers we parse
-
 #define SLOT(l)		 ((struct mac_casper *)mac_label_get((l), casper_slot))
 #define SLOT_SET(l, val) (mac_label_set((l), casper_slot, (uintptr_t)(val)))
 
@@ -17,13 +14,7 @@ struct mac_casper {
 
 static const char *casper_blocked_labels[] = {
 	/* List of blocked labels */
-	"dns",
-    "fileargs",
-	"grp",
-	"netdb",
-	"pwd",
-	"sysctl",
-	"syslog",
+	"dns", "fileargs", "grp", "netdb", "pwd", "sysctl", "syslog",
 	// Add more labels here in the future
 	NULL
 };
@@ -60,9 +51,7 @@ static const char *sysctl_allowed_files_open[] = {
 
 /* SYSLOG */
 static const char *syslog_allowed_files_open[] = {
-	"/var/run/log",
-	"/etc/localtime",
-	"/etc/pwd.db",
+	"/var/run/log", "/etc/localtime", "/etc/pwd.db",
 	NULL // Sentinel
 };
 

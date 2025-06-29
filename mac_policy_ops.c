@@ -26,6 +26,7 @@
 #include <security/mac/mac_policy.h>
 #include <security/mac/mac_syscalls.h>
 
+#include "checker/checker.h"
 #include "mac_policy_ops.h"
 
 static int casper_slot;
@@ -542,162 +543,7 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 		return 0;
 
 	if (!strcmp(obj->label, "dns")) {
-		// printf("casper_mpo_socket_check_connect_t\n");
-
-		/* Flag */
-		bool ipv4 = true;
-		bool pass = false;
-		char ip_str[INET_ADDRSTRLEN]; // Allocate buffer for the IP
-					      // address string
-		// struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
-		struct sockaddr_in *sin = (struct sockaddr_in *)sa;
-
-		// Check if sockaddr is IPv4 or IPv6
-		if (sa->sa_family == AF_INET) {
-			inet_ntoa_r(sin->sin_addr,
-			    ip_str); // Convert the raw address to a string
-				     // printf("Connecting to IP (IPv4): %s\n",
-			// ip_str); // Print the IP address as a string
-		} else if (sa->sa_family == AF_INET6) {
-			ipv4 = false;
-
-			// printf("Connecting to IP (IPv6): ");
-			// for (int i = 0; i < 16; i++) {
-			// printf("%02x",
-			// sin6->sin6_addr
-			// .s6_addr[i]); // Print raw IPv6 address
-			//   in hex
-			// if (i < 15) {
-			// printf(":");
-			// }
-			// }
-			// printf("\n");
-		}
-
-		struct nameidata nd;
-		struct vnode *vp;
-		struct uio auio;
-		struct iovec aiov;
-		char *buf;
-		int error;
-		off_t offset = 0;
-		size_t bytes_read;
-		int nserv = 0;
-
-		// Allocate buffer in kernel space
-		buf = (char *)malloc(BUF_SIZE, M_TEMP, M_WAITOK | M_ZERO);
-		if (!buf) {
-			// printf("[Kernel] Failed to allocate buffer\n");
-			return 0;
-		}
-
-		NDINIT(&nd, LOOKUP, FOLLOW, UIO_SYSSPACE, "/etc/resolv.conf");
-
-		error = namei(&nd);
-		if (error) {
-			// printf("[Kernel] namei() failed: %d\n", error);
-			free(buf, M_TEMP);
-			return 0;
-		}
-
-		vp = nd.ni_vp;
-
-		if (vp->v_type != VREG) {
-			// printf(
-			// "[Kernel] /etc/resolv.conf is not a regular file\n");
-			vrele(vp);
-			free(buf, M_TEMP);
-			return 0;
-		}
-
-		// Read file contents
-		// printf("[Kernel] Reading /etc/resolv.conf...\n");
-
-		while (nserv < MAX_NAMESERVERS) {
-			aiov.iov_base = buf;
-			aiov.iov_len = BUF_SIZE;
-			auio.uio_iov = &aiov;
-			auio.uio_iovcnt = 1;
-			auio.uio_offset = offset;
-			auio.uio_resid = BUF_SIZE;
-			auio.uio_segflg = UIO_SYSSPACE;
-			auio.uio_rw = UIO_READ;
-			auio.uio_td = curthread; // Current kernel thread
-
-			// error = vn_rdwr(UIO_READ, vp, buf, BUF_SIZE, offset,
-			// UIO_SYSSPACE,
-			//                 IO_NODELOCKED, curthread->td_ucred,
-			//                 curthread->td_ucred, NULL,
-			//                 curthread);
-
-			error = VOP_READ(vp, &auio, IO_NODELOCKED,
-			    curthread->td_ucred);
-
-			if (error) {
-				// printf("[Kernel] vnode type: %d\n",
-				// vp->v_type); printf("[Kernel] vnode path:
-				// %s\n",
-				//     nd.ni_cnd.cn_nameptr);
-				// printf("[Kernel] Mount flags: 0x%lx\n",
-				//     vp->v_mount->mnt_flag);
-
-				// printf("[Kernel] auio.uio_resid %zd\n",
-				//     auio.uio_resid);
-				// printf("[Kernel] error number: %d\n", error);
-				// printf("[Kernel] Error in vn_rdwr\n");
-				// printf("[Kernel] vnode type: %d\n",
-				// vp->v_type);
-				return 0;
-			}
-
-			if (auio.uio_resid == BUF_SIZE) {
-				break; // End of file
-			}
-
-			bytes_read = BUF_SIZE - auio.uio_resid;
-			offset += bytes_read;
-
-			// Parse buffer for "nameserver" entries
-			char *line = buf;
-			while ((line = strsep(&buf, "\n")) != NULL) {
-				// printf("[Kernel] Line %s\n", line);
-				if (strncmp(line, "nameserver", 10) == 0) {
-					char *cp = line + 10;
-
-					// Skip spaces
-					while (*cp == ' ' || *cp == '\t')
-						cp++;
-
-					if (*cp) { // If IP is present
-						// printf(
-						//     "[Kernel] Found
-						//     nameserver: %s\n", cp);
-
-						if (ipv4) {
-							// printf("[IP] %s\n",
-							//     ip_str);
-							if (!strncmp(cp, ip_str,
-								strlen(
-								    ip_str))) { // Fixed typo & logic
-								pass = true;
-							}
-						}
-						// else {} TODO
-						nserv++;
-					}
-				}
-			}
-		}
-
-		if (pass) {
-			// printf("[Pass]\n");
-		} else {
-			return (EACCES);
-		}
-
-		// Cleanup
-		vrele(vp);
-		free(buf, M_TEMP);
+		return casper_check_dst_ip(obj->label, sa);
 	} else if (!strcmp(obj->label, "fileargs")) {
 		return (EACCES);
 	} else if (!strcmp(obj->label, "grp")) {
@@ -761,33 +607,27 @@ casper_mpo_socket_check_poll_t(struct ucred *cred, struct socket *so,
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "fileargs")) {
+	} else if (!strcmp(obj->label, "fileargs")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "grp")) {
+	} else if (!strcmp(obj->label, "grp")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "netdb")) {
+	} else if (!strcmp(obj->label, "netdb")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "pwd")) {
+	} else if (!strcmp(obj->label, "pwd")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "sysctl")) {
+	} else if (!strcmp(obj->label, "sysctl")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "syslog")) {
+	} else if (!strcmp(obj->label, "syslog")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
@@ -807,28 +647,23 @@ casper_mpo_socket_check_receive_t(struct ucred *cred, struct socket *so,
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "grp")) {
+	} else if (!strcmp(obj->label, "grp")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "netdb")) {
+	} else if (!strcmp(obj->label, "netdb")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "pwd")) {
+	} else if (!strcmp(obj->label, "pwd")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "sysctl")) {
+	} else if (!strcmp(obj->label, "sysctl")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "syslog")) {
+	} else if (!strcmp(obj->label, "syslog")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
@@ -854,28 +689,23 @@ casper_mpo_socket_check_send_t(struct ucred *cred, struct socket *so,
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "grp")) {
+	} else if (!strcmp(obj->label, "grp")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "netdb")) {
+	} else if (!strcmp(obj->label, "netdb")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "pwd")) {
+	} else if (!strcmp(obj->label, "pwd")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "sysctl")) {
+	} else if (!strcmp(obj->label, "sysctl")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
-	}
-	else if (!strcmp(obj->label, "syslog")) {
+	} else if (!strcmp(obj->label, "syslog")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);

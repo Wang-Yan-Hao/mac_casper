@@ -29,3 +29,6 @@ vnode_if_newproto.h
 vnode_if_typedef.h
 x86
 *.out
+
+checker/checker.o
+.depend.checker_checker.o
