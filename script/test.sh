@@ -7,7 +7,7 @@ echo "=== Testing Casper Services ==="
 # DNS Service Tests
 echo ""
 echo ">>> Testing Casper DNS service: getaddr"
-cd test_program
+cd test_program/dns
 make
 ./getadd || { echo "getaddr test FAILED"; exit 1; }
 
@@ -19,7 +19,7 @@ make
 # FILEARGS Service Test
 echo ""
 echo ">>> Testing Casper fileargs service"
-cd ../fileargs
+cd ../../fileargs
 make
 sh run.sh || { echo "fileargs test FAILED"; exit 1; }
 

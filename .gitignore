@@ -6,12 +6,15 @@ mac_policy_ops.ko
 mac_policy_ops.o
 machine
 opt_global.h
-test_program/fork_mac_open_read
-test_program/getadd
-test_program/open_etc_hosts
-test_program/performance/cap_dns
-test_program/performance/dns_origin
-test_program/performance/dns_origin_mac
+
+# DNS
+fork_mac_open_read
+getadd
+cap_dns
+cap_dns
+dns_origin
+dns_origin_mac
+
 test_program/fileargs/fileargs_demo
 test_program/fileargs/casper_fileargs_demo
 test_program/fileargs/performance/fileargs_perf
