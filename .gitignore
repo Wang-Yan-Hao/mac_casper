@@ -7,6 +7,9 @@ mac_policy_ops.o
 machine
 opt_global.h
 
+# Test performance
+*.png
+
 # DNS
 fork_mac_open_read
 getadd
@@ -17,7 +20,11 @@ dns_origin_mac
 
 test_program/fileargs/fileargs_demo
 test_program/fileargs/casper_fileargs_demo
-test_program/fileargs/performance/fileargs_perf
+
+
+# FILEARGS
+casper_fileargs_perf
+
 test_program/grp/casper_grp_demo
 test_program/grp/performance/casper_grp_perf
 test_program/netdb/casper_netdb_demo
@@ -27,6 +34,11 @@ test_program/pwd/performance/casper_pwd_perf
 test_program/sysctl/casper_sysctl_demo
 test_program/sysctl/performance/casper_sysctl_perf
 test_program/syslog/casper_syslog_demo
+
+
+# SYSLOG
+casper_syslog_perf
+
 vnode_if.h
 vnode_if_newproto.h
 vnode_if_typedef.h
@@ -35,3 +47,5 @@ x86
 
 checker/checker.o
 .depend.checker_checker.o
+
+__pycache__

@@ -1,4 +1,4 @@
 all:
-	cc -o fileargs_perf fileargs_perf.c -O0 -lcasper -lcap_fileargs
+	cc -o casper_fileargs_perf casper_fileargs_perf.c -O0 -lcasper -lcap_fileargs
 
 
