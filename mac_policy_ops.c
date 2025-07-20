@@ -486,17 +486,6 @@ casper_mpo_posixshm_check_write_t(struct ucred *active_cred,
 {
 	return casper_deny_default(active_cred);
 }
-/* priv */
-static int
-casper_mpo_priv_check_t(struct ucred *cred, int priv)
-{
-	return casper_deny_default(cred);
-}
-static int
-casper_mpo_priv_grant_t(struct ucred *cred, int priv)
-{
-	return casper_deny_default(cred);
-}
 /* proc */
 static int
 casper_mpo_proc_check_debug_t(struct ucred *cred, struct proc *p)
@@ -1306,9 +1295,6 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_posixshm_check_truncate = casper_mpo_posixshm_check_truncate_t,
 	.mpo_posixshm_check_unlink = casper_mpo_posixshm_check_unlink_t,
 	.mpo_posixshm_check_write = casper_mpo_posixshm_check_write_t,
-	/* priv */
-	.mpo_priv_check = casper_mpo_priv_check_t,
-	.mpo_priv_grant = casper_mpo_priv_grant_t,
 	/* proc */
 	.mpo_proc_check_debug = casper_mpo_proc_check_debug_t,
 	.mpo_proc_check_sched = casper_mpo_proc_check_sched_t,
