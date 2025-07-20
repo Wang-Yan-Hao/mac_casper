@@ -2,6 +2,7 @@
 import sys
 import numpy as np
 from scipy.stats import gaussian_kde
+import matplotlib
 import matplotlib.pyplot as plt
 
 from config import CASPER_CONFIG, DEFAULT_ITERATIONS, run_program, parse_times
@@ -105,6 +106,7 @@ def main():
         elif arg == "--plot":
             SHOW_PLOTS = "show"
         elif arg == "--save-plot":
+            matplotlib.use("Agg")
             SHOW_PLOTS = "save"
         elif not arg.startswith("--"):
             service_to_run.append(arg)
