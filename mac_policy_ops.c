@@ -593,9 +593,7 @@ casper_mpo_socket_check_poll_t(struct ucred *cred, struct socket *so,
 		return 0;
 
 	if (!strcmp(obj->label, "dns")) {
-		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
-			return 0;
-		return (EACCES);
+		return 0;
 	} else if (!strcmp(obj->label, "fileargs")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
@@ -765,9 +763,10 @@ casper_mpo_system_check_sysctl_t(struct ucred *cred, struct sysctl_oid *oidp,
 		return 0;
 	}
 
-	if (!strcmp(obj->label, "sysctl")) {
+	if (!strcmp(obj->label, "dns"))
 		return 0;
-	}
+	else if (!strcmp(obj->label, "sysctl"))
+		return 0;
 
 	return casper_deny_default(cred);
 }
@@ -1137,15 +1136,15 @@ casper_mpo_vnode_check_stat_t(struct ucred *active_cred,
 		return 0;
 
 	if (!strcmp(obj->label, "dns")) {
-		return (EACCES);
+		return 0;
 	} else if (!strcmp(obj->label, "fileargs")) {
 		return 0;
 	} else if (!strcmp(obj->label, "grp")) {
-		return (EACCES);
+		return 0;
 	} else if (!strcmp(obj->label, "netdb")) {
-		return (EACCES);
+		return 0;
 	} else if (!strcmp(obj->label, "pwd")) {
-		return (EACCES);
+		return 0;
 	} else if (!strcmp(obj->label, "sysctl")) {
 		return (EACCES);
 	} else if (!strcmp(obj->label, "syslog")) {
