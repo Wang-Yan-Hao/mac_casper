@@ -82,6 +82,46 @@ casper_check_allowed_file(char *original_filename, struct vnode *vp,
 }
 
 static int
+casper_check_allowed_file_on_readlink(char *original_filename, struct vnode *vp,
+    const char *const *allowed_paths, struct mac_casper *obj)
+{
+	if (vp == NULL)
+		return 0;
+
+	char *filename = NULL, *freebuf = NULL;
+	int error;
+
+	// Check soft link (original filename)
+	for (int i = 0; allowed_paths[i] != NULL; i++) {
+		if (strcmp(original_filename, allowed_paths[i]) == 0)
+			return 0;
+	}
+
+	error = vn_fullpath(vp, &filename, &freebuf);
+	if (error != 0 || filename == NULL) {
+		return 0;
+	}
+
+	int allowed = 0;
+	for (int i = 0; allowed_paths[i] != NULL; i++) {
+		if (strcmp(filename, allowed_paths[i]) == 0) {
+			allowed = 1;
+			break;
+		}
+	}
+
+	free(freebuf, M_TEMP);
+
+	if (!allowed)
+		return (EACCES);
+	else {
+		strlcpy(obj->original_filename, filename,
+		    sizeof(obj->original_filename));
+		return 0;
+	}
+}
+
+static int
 casper_deny_default(const struct ucred *cred)
 {
 	if (cred == NULL || cred->cr_label == NULL)
@@ -950,13 +990,10 @@ static int
 casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
     struct label *label, int acc_mode)
 {
-	// printf("casper_mpo_vnode_check_open start\n");
 	struct mac_casper *obj = casper_get_label(cred);
 	if (obj == NULL) {
 		return 0;
 	}
-	// printf("casper_mpo_vnode_check_open: obj != NULL\n");
-	// printf("casper_mpo_vnode_check_open: label %s\n", obj->label);
 	if (strcmp(obj->label, "dns") == 0) {
 		return casper_check_allowed_file(obj->original_filename, vp,
 		    casper_dns_allowed_files_open);
@@ -1011,9 +1048,6 @@ static int
 casper_mpo_vnode_check_readlink_t(struct ucred *cred, struct vnode *vp,
     struct label *vplabel)
 {
-	char *filename = NULL, *freebuf = NULL;
-	int error;
-
 	if (cred == NULL || cred->cr_label == NULL) {
 		return 0;
 	}
@@ -1023,47 +1057,29 @@ casper_mpo_vnode_check_readlink_t(struct ucred *cred, struct vnode *vp,
 		return 0;
 	}
 
-	// Check for the specific label "dns"
-	if (!strcmp(obj->label, "dns")) {
-		for (int i = 0; casper_dns_allowed_files_open[i] != NULL; i++) {
-			if (!strcmp(obj->original_filename,
-				casper_dns_allowed_files_open[i])) {
-				obj->original_filename[0] = '\0';
-				return 0;
-			}
-		}
+	if (strcmp(obj->label, "dns") == 0)
+		return casper_check_allowed_file_on_readlink(
+		    obj->original_filename, vp, casper_dns_allowed_files_open,
+		    obj);
+	else if (strcmp(obj->label, "fileargs") == 0)
+		return 0;
+	else if (strcmp(obj->label, "grp") == 0)
+		return casper_check_allowed_file_on_readlink(
+		    obj->original_filename, vp, grp_allowed_files_open, obj);
+	else if (strcmp(obj->label, "netdb") == 0)
+		return casper_check_allowed_file_on_readlink(
+		    obj->original_filename, vp, netdb_allowed_files_open, obj);
+	else if (strcmp(obj->label, "pwd") == 0)
+		return casper_check_allowed_file_on_readlink(
+		    obj->original_filename, vp, pwd_allowed_files_open, obj);
+	else if (!strcmp(obj->label, "sysctl"))
+		return casper_check_allowed_file_on_readlink(
+		    obj->original_filename, vp, sysctl_allowed_files_open, obj);
+	else if (!strcmp(obj->label, "syslog"))
+		return casper_check_allowed_file_on_readlink(
+		    obj->original_filename, vp, syslog_allowed_files_open, obj);
 
-		// Get the full path of the vnode
-		error = vn_fullpath(vp, &filename, &freebuf);
-
-		// If full path retrieval fails, allow access (fail-safe policy)
-		if (error != 0 || filename == NULL) {
-			return 0;
-		}
-
-		// Restrict access to specific paths
-		int allowed = 0; // Flag to track if the filename is allowed
-		for (int i = 0; casper_dns_allowed_files_open[i] != NULL; i++) {
-			if (strcmp(filename,
-				casper_dns_allowed_files_open[i]) == 0) {
-				allowed = 1;
-				break;
-			}
-		}
-
-		if (!allowed) {
-			free(freebuf, M_TEMP); // Free allocated buffer
-			return (EACCES);       // Deny access
-		}
-
-		strlcpy(obj->original_filename, filename,
-		    sizeof(obj->original_filename));
-
-		// Free allocated buffer after successful checks
-		free(freebuf, M_TEMP);
-	}
-
-	return 0; // Allow access for other labels or conditions
+	return 0;
 }
 static int
 casper_mpo_vnode_check_relabel_t(struct ucred *cred, struct vnode *vp,
