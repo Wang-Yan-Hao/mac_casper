@@ -11,15 +11,15 @@
 #include <sys/namei.h>
 #include <sys/proc.h>
 #include <sys/protosw.h>
-#include <sys/socket.h> // For sockaddr (generic)
+#include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/vnode.h>
 
 #include <vm/vm.h>
 #include <vm/uma.h>
 
-#include <netinet/in.h>	 // For sockaddr_in (IPv4)
-#include <netinet/ip6.h> // For sockaddr_in6 (IPv6)
+#include <netinet/in.h>
+#include <netinet/ip6.h>
 
 #include <security/mac/mac_framework.h>
 #include <security/mac/mac_internal.h>
@@ -63,9 +63,8 @@ casper_check_allowed_file(char *original_filename, struct vnode *vp,
 
 	// Resolve full path of vnode
 	error = vn_fullpath(vp, &filename, &freebuf);
-	if (error != 0 || filename == NULL) {
+	if (error != 0 || filename == NULL)
 		return 0; // fail-safe allow
-	}
 
 	// Compare full path with whitelist
 	int allowed = 0;
@@ -98,9 +97,8 @@ casper_check_allowed_file_on_readlink(char *original_filename, struct vnode *vp,
 	}
 
 	error = vn_fullpath(vp, &filename, &freebuf);
-	if (error != 0 || filename == NULL) {
+	if (error != 0 || filename == NULL)
 		return 0;
-	}
 
 	int allowed = 0;
 	for (int i = 0; allowed_paths[i] != NULL; i++) {
@@ -135,6 +133,7 @@ casper_deny_default(const struct ucred *cred)
 		if (!strcmp(obj->label, casper_blocked_labels[i]))
 			return EACCES;
 	}
+
 	return 0;
 }
 
@@ -157,9 +156,8 @@ casper_cred_relabel(struct ucred *cred, struct label *newlabel)
 	if (dest == NULL) {
 		// Use M_NOWAIT to prevent sleeping inside a non-sleepable lock
 		dest = uma_zalloc(zone_casper, M_NOWAIT);
-		if (dest == NULL) {
+		if (dest == NULL)
 			return;
-		}
 
 		bzero(dest, sizeof(*dest)); // Ensure zero-initialization
 		SLOT_SET(cred->cr_label, dest);
@@ -178,33 +176,26 @@ static int
 casper_mpo_cred_internalize_label_t(struct label *label, char *element_name,
     char *element_data, int *claimed)
 {
-	// printf("casper_mpo_cred_internalize_label_t start\n");
-	// printf("element_name: %s\n", element_name);
-	// printf("element_data: %s\n", element_data);
 	struct mac_casper *memory;
 
-	if (element_data == NULL || element_name == NULL) {
+	if (element_data == NULL || element_name == NULL)
 		return (EACCES);
-	}
 
 	if (strcmp(MAC_CASPER_LABEL_NAME, element_name) != 0)
 		return 0;
 
 	int flag = 0;
 	for (int i = 0; casper_blocked_labels[i] != NULL; i++) {
-		if (!strcmp(element_data, casper_blocked_labels[i])) {
+		if (!strcmp(element_data, casper_blocked_labels[i]))
 			flag = 1;
-		}
 	}
 
-	if (flag == 0) {
+	if (flag == 0)
 		return (EACCES);
-	}
 
 	memory = uma_zalloc(zone_casper, M_NOWAIT);
-	if (memory == NULL) {
+	if (memory == NULL)
 		return ENOMEM;
-	}
 
 	// Initialize the entire structure to zero (safe default)
 	memset(memory, 0, sizeof(struct mac_casper));
@@ -571,21 +562,20 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 	if (obj == NULL)
 		return 0;
 
-	if (!strcmp(obj->label, "dns")) {
+	if (!strcmp(obj->label, "dns"))
 		return casper_check_dst_ip(obj->label, sa);
-	} else if (!strcmp(obj->label, "fileargs")) {
+	else if (!strcmp(obj->label, "fileargs"))
 		return (EACCES);
-	} else if (!strcmp(obj->label, "grp")) {
+	else if (!strcmp(obj->label, "grp"))
 		return (EACCES);
-	} else if (!strcmp(obj->label, "netdb")) {
+	else if (!strcmp(obj->label, "netdb"))
 		return (EACCES);
-	} else if (!strcmp(obj->label, "pwd")) {
+	else if (!strcmp(obj->label, "pwd"))
 		return (EACCES);
-	} else if (!strcmp(obj->label, "sysctl")) {
+	else if (!strcmp(obj->label, "sysctl"))
 		return (EACCES);
-	} else if (!strcmp(obj->label, "syslog")) {
+	else if (!strcmp(obj->label, "syslog"))
 		return 0;
-	}
 
 	return 0;
 }
@@ -597,22 +587,21 @@ casper_mpo_socket_check_create_t(struct ucred *cred, int domain, int type,
 	if (obj == NULL)
 		return 0;
 
-	if (!strcmp(obj->label, "dns")) {
+	if (!strcmp(obj->label, "dns"))
 		return 0;
-	} else if (!strcmp(obj->label, "fileargs")) {
+	else if (!strcmp(obj->label, "fileargs"))
 		return (EACCES);
-	} else if (!strcmp(obj->label, "grp")) {
+	else if (!strcmp(obj->label, "grp"))
 		return (EACCES);
-	} else if (!strcmp(obj->label, "netdb")) {
+	else if (!strcmp(obj->label, "netdb"))
 		return (EACCES);
-	} else if (!strcmp(obj->label, "pwd")) {
+	else if (!strcmp(obj->label, "pwd"))
 		return (EACCES);
-	} else if (!strcmp(obj->label, "sysctl")) {
+	else if (!strcmp(obj->label, "sysctl"))
 		return (EACCES);
-	} else if (!strcmp(obj->label, "syslog")) {
-		if (domain != PF_UNIX) {
+	else if (!strcmp(obj->label, "syslog")) {
+		if (domain != PF_UNIX)
 			return (EACCES);
-		}
 		return 0;
 	}
 
@@ -632,9 +621,9 @@ casper_mpo_socket_check_poll_t(struct ucred *cred, struct socket *so,
 	if (obj == NULL)
 		return 0;
 
-	if (!strcmp(obj->label, "dns")) {
+	if (!strcmp(obj->label, "dns"))
 		return 0;
-	} else if (!strcmp(obj->label, "fileargs")) {
+	else if (!strcmp(obj->label, "fileargs")) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return 0;
 		return (EACCES);
@@ -799,9 +788,8 @@ casper_mpo_system_check_sysctl_t(struct ucred *cred, struct sysctl_oid *oidp,
     void *arg1, int arg2, struct sysctl_req *req)
 {
 	struct mac_casper *obj = casper_get_label(cred);
-	if (obj == NULL) {
+	if (obj == NULL)
 		return 0;
-	}
 
 	if (!strcmp(obj->label, "dns"))
 		return 0;
@@ -991,30 +979,29 @@ casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
     struct label *label, int acc_mode)
 {
 	struct mac_casper *obj = casper_get_label(cred);
-	if (obj == NULL) {
+	if (obj == NULL)
 		return 0;
-	}
-	if (strcmp(obj->label, "dns") == 0) {
+
+	if (strcmp(obj->label, "dns") == 0)
 		return casper_check_allowed_file(obj->original_filename, vp,
 		    casper_dns_allowed_files_open);
-	} else if (strcmp(obj->label, "fileargs") == 0) {
+	else if (strcmp(obj->label, "fileargs") == 0)
 		return 0;
-	} else if (strcmp(obj->label, "grp") == 0) {
+	else if (strcmp(obj->label, "grp") == 0)
 		return casper_check_allowed_file(obj->original_filename, vp,
 		    grp_allowed_files_open);
-	} else if (strcmp(obj->label, "netdb") == 0) {
+	else if (strcmp(obj->label, "netdb") == 0)
 		return casper_check_allowed_file(obj->original_filename, vp,
 		    netdb_allowed_files_open);
-	} else if (strcmp(obj->label, "pwd") == 0) {
+	else if (strcmp(obj->label, "pwd") == 0)
 		return casper_check_allowed_file(obj->original_filename, vp,
 		    pwd_allowed_files_open);
-	} else if (!strcmp(obj->label, "sysctl")) {
+	else if (!strcmp(obj->label, "sysctl"))
 		return casper_check_allowed_file(obj->original_filename, vp,
 		    sysctl_allowed_files_open);
-	} else if (!strcmp(obj->label, "syslog")) {
+	else if (!strcmp(obj->label, "syslog"))
 		return casper_check_allowed_file(obj->original_filename, vp,
 		    syslog_allowed_files_open);
-	}
 
 	return 0;
 }
@@ -1029,13 +1016,12 @@ casper_mpo_vnode_check_read_t(struct ucred *active_cred,
     struct ucred *file_cred, struct vnode *vp, struct label *vplabel)
 {
 	struct mac_casper *obj = casper_get_label(active_cred);
-	if (obj == NULL) {
+	if (obj == NULL)
 		return 0;
-	}
 
-	if (strcmp(obj->label, "fileargs") == 0) {
+	if (strcmp(obj->label, "fileargs") == 0)
 		return (EACCES);
-	}
+
 	return 0; // Allow other access
 }
 static int
@@ -1048,14 +1034,12 @@ static int
 casper_mpo_vnode_check_readlink_t(struct ucred *cred, struct vnode *vp,
     struct label *vplabel)
 {
-	if (cred == NULL || cred->cr_label == NULL) {
+	if (cred == NULL || cred->cr_label == NULL)
 		return 0;
-	}
 
 	struct mac_casper *obj = SLOT(cred->cr_label);
-	if (obj == NULL) {
+	if (obj == NULL)
 		return 0;
-	}
 
 	if (strcmp(obj->label, "dns") == 0)
 		return casper_check_allowed_file_on_readlink(
@@ -1151,21 +1135,20 @@ casper_mpo_vnode_check_stat_t(struct ucred *active_cred,
 	if (obj == NULL)
 		return 0;
 
-	if (!strcmp(obj->label, "dns")) {
+	if (!strcmp(obj->label, "dns"))
 		return 0;
-	} else if (!strcmp(obj->label, "fileargs")) {
+	else if (!strcmp(obj->label, "fileargs"))
 		return 0;
-	} else if (!strcmp(obj->label, "grp")) {
+	else if (!strcmp(obj->label, "grp"))
 		return 0;
-	} else if (!strcmp(obj->label, "netdb")) {
+	else if (!strcmp(obj->label, "netdb"))
 		return 0;
-	} else if (!strcmp(obj->label, "pwd")) {
+	else if (!strcmp(obj->label, "pwd"))
 		return 0;
-	} else if (!strcmp(obj->label, "sysctl")) {
+	else if (!strcmp(obj->label, "sysctl"))
 		return (EACCES);
-	} else if (!strcmp(obj->label, "syslog")) {
+	else if (!strcmp(obj->label, "syslog"))
 		return (EACCES);
-	}
 
 	return 0;
 }
@@ -1209,10 +1192,8 @@ casper_init(struct mac_policy_conf *conf)
 	/* Check if zone_casper is already created */
 	zone_casper = uma_zcreate("mac_casper", sizeof(struct mac_casper), NULL,
 	    NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
-	if (zone_casper == NULL) {
-		// printf("Failed to create uma zone for casper\n");
+	if (zone_casper == NULL)
 		return;
-	}
 }
 static void
 casper_destroy(struct mac_policy_conf *mpc)
@@ -1404,3 +1385,4 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 /* Register */
 MAC_POLICY_SET(&caspe_mac_policy_ops, CaspeMAC, "Caspe MAC policy",
     MPC_LOADTIME_FLAG_UNLOADOK, &casper_slot);
+
