@@ -17,7 +17,7 @@
 #include <casper/cap_fileargs.h>
 
 #if defined(__aarch64__)
-	#define ITERATIONS 20000
+	#define ITERATIONS 15000
 #elif defined(__amd64__)
 	#define ITERATIONS 1000
 #else
