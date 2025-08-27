@@ -18,7 +18,13 @@
 #include <libcasper.h>
 #include <casper/cap_dns.h>
 
-#define ITERATIONS 2000
+#if defined(__aarch64__)
+	#define ITERATIONS 5000
+#elif defined(__amd64__)
+	#define ITERATIONS 20000
+#else
+	#define ITERATIONS 1
+#endif
 
 int main() {
     //const char *hostname = "www.google.com";
@@ -58,9 +64,9 @@ int main() {
             printf("getaddrinfo failed: %s\n", gai_strerror(status));
             return -1;
         }
+		freeaddrinfo(res);
     }
     clock_gettime(CLOCK_MONOTONIC, &end);
-    freeaddrinfo(res);
     elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     printf("getaddrinfo took %f seconds for %d iterations\n", elapsed, ITERATIONS);
 
