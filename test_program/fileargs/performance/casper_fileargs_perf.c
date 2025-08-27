@@ -19,7 +19,7 @@
 #if defined(__aarch64__)
 	#define ITERATIONS 15000
 #elif defined(__amd64__)
-	#define ITERATIONS 1000
+	#define ITERATIONS 100000
 #else
 	#define ITERATIONS 1
 #endif

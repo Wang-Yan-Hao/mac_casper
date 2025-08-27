@@ -11,7 +11,7 @@
 #if defined(__aarch64__)
 #define ITERATIONS 10000
 #elif defined(__amd64__)
-#define ITERATIONS 100000
+#define ITERATIONS 50000
 #else
 #define ITERATIONS 1
 #endif
@@ -24,7 +24,6 @@ int main(void) {
 	cap_channel_t *capcas, *capnetdb;
 	struct protoent *proto;
 
-	// 要查的 protocol 名稱列表，增加多個種類來減少快取命中
 	const char *protocols[] = {
 		"tcp", "udp", "icmp", "egp", "ggp", "ipencap", "pup",
 		"rdp", "rsvp", "gre", "esp", "ah", "skip",
