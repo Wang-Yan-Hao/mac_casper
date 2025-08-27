@@ -17,12 +17,12 @@ cap_dns
 cap_dns
 dns_origin
 dns_origin_mac
+dns_qps
 
+# FILEARGS
 test_program/fileargs/fileargs_demo
 test_program/fileargs/casper_fileargs_demo
 
-
-# FILEARGS
 casper_fileargs_perf
 
 test_program/grp/casper_grp_demo
