@@ -17,7 +17,7 @@
 #include <netinet/ip6.h>
 
 #include "../label.h"
-#include "../mac_policy_ops.h"
+#include "../mac_casper.h"
 #include "checker.h"
 
 /*

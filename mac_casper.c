@@ -30,7 +30,7 @@
 
 #include "checker/checker.h"
 #include "label.h"
-#include "mac_policy_ops.h"
+#include "mac_casper.h"
 
 static int casper_slot;
 static uma_zone_t zone_casper;

@@ -1,7 +1,7 @@
 .include <bsd.own.mk>
 
-KMOD=   mac_policy_ops
-SRCS=   mac_policy_ops.c
+KMOD=   mac_casper
+SRCS=   mac_casper.c
 SRCS+=	checker/checker.c
 SRCS+=	vnode_if.h
 SRCS+=  label.h

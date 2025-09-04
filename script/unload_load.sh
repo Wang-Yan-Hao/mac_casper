@@ -1,2 +1,2 @@
-sudo kldunload mac_policy_ops
-sudo kldload ./mac_policy_ops.ko
+sudo kldunload mac_casper
+sudo kldload ./mac_casper.ko

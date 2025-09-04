@@ -4,7 +4,9 @@
 export_syms
 i386
 mac_policy_ops.ko
+*.ko
 mac_policy_ops.o
+*.o
 machine
 opt_global.h
 vnode_if.h
