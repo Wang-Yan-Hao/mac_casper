@@ -1300,15 +1300,13 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_socket_check_accept = casper_mpo_socket_check_accept_t,
 	.mpo_socket_check_bind = casper_mpo_socket_check_bind_t,
 	.mpo_socket_check_connect = casper_mpo_socket_check_connect_t, // Check
-	.mpo_socket_check_create = casper_mpo_socket_check_create_t,   //
-	// Enable
+	.mpo_socket_check_create = casper_mpo_socket_check_create_t,   // Check
 	.mpo_socket_check_listen = casper_mpo_socket_check_listen_t,
-	.mpo_socket_check_poll = casper_mpo_socket_check_poll_t, // Casper
-	.mpo_socket_check_receive = casper_mpo_socket_check_receive_t,
-	// // Casper Enable
+	.mpo_socket_check_poll = casper_mpo_socket_check_poll_t, // Casper need
+	.mpo_socket_check_receive =
+	    casper_mpo_socket_check_receive_t, // Casper need
 	.mpo_socket_check_relabel = casper_mpo_socket_check_relabel_t,
-	.mpo_socket_check_send = casper_mpo_socket_check_send_t, // Casper
-	// Enable
+	.mpo_socket_check_send = casper_mpo_socket_check_send_t, // Casper need
 	.mpo_socket_check_stat = casper_mpo_socket_check_stat_t,
 	.mpo_socket_check_visible = casper_mpo_socket_check_visible_t,
 	/* syncache */
@@ -1373,7 +1371,7 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_vnode_check_setmode = casper_mpo_vnode_check_setmode_t,
 	.mpo_vnode_check_setowner = casper_mpo_vnode_check_setowner_t,
 	.mpo_vnode_check_setutimes = casper_mpo_vnode_check_setutimes_t,
-	.mpo_vnode_check_stat = casper_mpo_vnode_check_stat_t, // FILEARGS lstat
+	.mpo_vnode_check_stat = casper_mpo_vnode_check_stat_t, // Check
 	.mpo_vnode_check_unlink = casper_mpo_vnode_check_unlink_t,
 	.mpo_vnode_check_write = casper_mpo_vnode_check_write_t,
 	.mpo_vnode_create_extattr = casper_mpo_vnode_create_extattr_t,
@@ -1385,4 +1383,3 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 /* Register */
 MAC_POLICY_SET(&caspe_mac_policy_ops, CaspeMAC, "Caspe MAC policy",
     MPC_LOADTIME_FLAG_UNLOADOK, &casper_slot);
-
