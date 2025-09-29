@@ -1,3 +1,4 @@
+# Module
 *.kld
 .depend.mac_policy_ops.o
 export_syms
@@ -6,8 +7,20 @@ mac_policy_ops.ko
 mac_policy_ops.o
 machine
 opt_global.h
+vnode_if.h
+vnode_if_newproto.h
+vnode_if_typedef.h
+x86
+*.out
+checker/checker.o
+.depend.checker_checker.o
+__pycache__
 
-# Test performance
+# dtrace_casper/
+base
+base_2
+
+# Test performance image
 *.png
 
 # DNS
@@ -20,32 +33,26 @@ dns_origin_mac
 dns_qps
 
 # FILEARGS
-test_program/fileargs/fileargs_demo
-test_program/fileargs/casper_fileargs_demo
-
+fileargs_demo
+casper_fileargs_demo
 casper_fileargs_perf
 
-test_program/grp/casper_grp_demo
-test_program/grp/performance/casper_grp_perf
-test_program/netdb/casper_netdb_demo
-test_program/netdb/performance/casper_netdb_perf
-test_program/pwd/casper_pwd_demo
-test_program/pwd/performance/casper_pwd_perf
-test_program/sysctl/casper_sysctl_demo
-test_program/sysctl/performance/casper_sysctl_perf
-test_program/syslog/casper_syslog_demo
+# GRP
+casper_grp_demo
+casper_grp_perf
 
+# NETDB
+casper_netdb_demo
+casper_netdb_perf
+
+# PWD
+casper_pwd_demo
+casper_pwd_perf
+
+# SYSCTL
+casper_sysctl_demo
+casper_sysctl_perf
 
 # SYSLOG
+casper_syslog_demo
 casper_syslog_perf
-
-vnode_if.h
-vnode_if_newproto.h
-vnode_if_typedef.h
-x86
-*.out
-
-checker/checker.o
-.depend.checker_checker.o
-
-__pycache__
