@@ -7,7 +7,7 @@ echo "=== Testing Casper Services ==="
 # DNS Service Tests
 echo ""
 echo ">>> Testing Casper DNS service: getaddr"
-cd test_program/dns
+cd ../test_program/dns
 make
 ./getadd || { echo "getaddr test FAILED"; exit 1; }
 
