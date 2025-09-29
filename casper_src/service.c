@@ -424,7 +424,7 @@ service_clean(int *sockp, int *procfdp, uint64_t flags)
 void
 service_start(struct service *service, int sock, int procfd)
 {
-	// printf("name %s\n", service->s_name);
+	// printf("# service_start: name %s\n", service->s_name);
 	struct service_connection *sconn, *sconntmp;
 	fd_set fds;
 	int maxfd, nfds;
@@ -543,6 +543,6 @@ service_start(struct service *service, int sock, int procfd)
 			break;
 		}
 	}
-	printf("service_end\n");
+
 	_exit(0);
 }
