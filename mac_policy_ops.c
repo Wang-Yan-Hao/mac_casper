@@ -578,9 +578,9 @@ casper_mpo_socket_check_create_t(struct ucred *cred, int domain, int type,
 	else if (strcmp(obj->label, "fileargs") == 0 ||
 	    strcmp(obj->label, "grp") == 0 ||
 	    strcmp(obj->label, "netdb") == 0 ||
-	    strcmp(obj->label, "pwd") == 0 || strcmp(obj->label, "sysctl") == 0)
-		return (EACCES);
-	else if (strcmp(obj->label, "syslog") == 0) {
+	    strcmp(obj->label, "pwd") == 0 ||
+	    strcmp(obj->label, "sysctl") == 0 ||
+	    strcmp(obj->label, "syslog") == 0) {
 		if (domain != PF_UNIX)
 			return (EACCES);
 		return 0;
@@ -725,12 +725,13 @@ casper_mpo_system_check_sysctl_t(struct ucred *cred, struct sysctl_oid *oidp,
 	if (obj == NULL)
 		return 0;
 
-	if (strcmp(obj->label, "dns") == 0 || strcmp(obj->label, "sysctl") == 0)
+	if (strcmp(obj->label, "dns") == 0 ||
+	    strcmp(obj->label, "sysctl") == 0 ||
+	    strcmp(obj->label, "syslog") == 0)
 		return 0;
 	else if (strcmp(obj->label, "fileargs") == 0 ||
 	    strcmp(obj->label, "grp") == 0 ||
-	    strcmp(obj->label, "netdb") == 0 ||
-	    strcmp(obj->label, "pwd") == 0 || strcmp(obj->label, "syslog") == 0)
+	    strcmp(obj->label, "netdb") == 0 || strcmp(obj->label, "pwd") == 0)
 		return (EACCES);
 
 	return 0;
@@ -848,7 +849,21 @@ static int
 casper_mpo_vnode_check_create_t(struct ucred *cred, struct vnode *dvp,
     struct label *dvplabel, struct componentname *cnp, struct vattr *vap)
 {
-	return casper_deny_default(cred);
+	struct mac_casper *obj = casper_get_label(cred);
+	if (obj == NULL)
+		return (0);
+
+	if (strcmp(obj->label, "fileargs") == 0)
+		return (0);
+	else if (strcmp(obj->label, "dns") == 0 ||
+	    strcmp(obj->label, "grp") == 0 ||
+	    strcmp(obj->label, "netdb") == 0 ||
+	    strcmp(obj->label, "pwd") == 0 ||
+	    strcmp(obj->label, "sysctl") == 0 ||
+	    strcmp(obj->label, "syslog") == 0)
+		return (EACCES);
+
+	return (0);
 }
 static int
 casper_mpo_vnode_check_deleteacl_t(struct ucred *cred, struct vnode *vp,
@@ -1273,7 +1288,7 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_vnode_check_access = casper_mpo_vnode_check_access_t,
 	.mpo_vnode_check_chdir = casper_mpo_vnode_check_chdir_t,
 	.mpo_vnode_check_chroot = casper_mpo_vnode_check_chroot_t,
-	.mpo_vnode_check_create = casper_mpo_vnode_check_create_t,
+	.mpo_vnode_check_create = casper_mpo_vnode_check_create_t, // Check
 	.mpo_vnode_check_deleteacl = casper_mpo_vnode_check_deleteacl_t,
 	.mpo_vnode_check_deleteextattr = casper_mpo_vnode_check_deleteextattr_t,
 	.mpo_vnode_check_exec = casper_mpo_vnode_check_exec_t,
@@ -1287,7 +1302,7 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_vnode_check_open =
 	    casper_mpo_vnode_check_open, // Can only open restrict files
 	.mpo_vnode_check_poll = casper_mpo_vnode_check_poll_t,
-	// .mpo_vnode_check_read = casper_mpo_vnode_check_read_t, // Enable
+	.mpo_vnode_check_read = casper_mpo_vnode_check_read_t, // Check
 	.mpo_vnode_check_readdir = casper_mpo_vnode_check_readdir_t,
 	.mpo_vnode_check_readlink =
 	    casper_mpo_vnode_check_readlink_t, // DNS softlink
