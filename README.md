@@ -70,6 +70,28 @@ Chdir failed
 Note: The last two errors (open and chdir) are expected.
 They occur because the MAC module restricts process access.
 
+Casper also includes its own test suite, which can be run using `kyua`.
+
+```sh
+kola@freebsd:/usr/tests/lib/libcasper/services $ ls
+Kyuafile        cap_dns         cap_fileargs    cap_grp         cap_net         cap_netdb       cap_pwd         cap_sysctl
+kola@freebsd:/usr/tests/lib/libcasper/services $ sudo kyua test
+cap_netdb/netdb_test:cap_netdb__getprotobyname  ->  passed  [0.005s]
+cap_fileargs/fileargs_test:fileargs__fopen_create  ->  passed  [0.058s]
+
+...
+
+cap_sysctl/sysctl_test:cap_sysctl__operation  ->  passed  [0.027s]
+cap_sysctl/sysctl_test:cap_sysctl__recursive_limits  ->  passed  [0.004s]
+
+Results file id is usr_tests_lib_libcasper_services.20250930-170345-409518
+Results saved to /root/.kyua/store/results.usr_tests_lib_libcasper_services.20250930-170345-409518.db
+
+57/57 passed (0 broken, 0 failed, 0 skipped)
+```
+
+As the output shows, our module successfully allows all legitimate actions without denial.
+
 ### Performance Test
 
 Each service folder also contains a `performance` subfolder with benchmarking code.
