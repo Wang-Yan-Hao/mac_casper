@@ -32,9 +32,6 @@
 #include "label.h"
 #include "mac_policy_ops.h"
 
-#define MAC_SUB_EXTATTR_NAMESPACE EXTATTR_NAMESPACE_SYSTEM
-#define MAC_SUB_EXTATTR_NAME	  "casper"
-
 static int casper_slot;
 static uma_zone_t zone_casper;
 
@@ -953,17 +950,9 @@ casper_mpo_vnode_relabel(struct ucred *cred, struct vnode *vp,
 	src = SLOT(label);
 	dst = SLOT(vplabel);
 
-	if (src == NULL)
+	if (src == NULL || dst == NULL)
 		return;
 
-	if (dst == NULL) {
-
-		dst = uma_zalloc(zone_casper, M_NOWAIT | M_ZERO);
-		if (dst == NULL)
-			return;
-
-		SLOT_SET(vplabel, dst);
-	}
 	dst->type = src->type;
 }
 static void
@@ -1066,14 +1055,8 @@ casper_mpo_vnode_internalize_label(struct label *label, char *element_name,
 
 	mpl = SLOT(label);
 
-	if (mpl == NULL) {
-		mpl = uma_zalloc(zone_casper, M_NOWAIT | M_ZERO);
-
-		if (mpl == NULL)
-			return (ENOMEM);
-
-		SLOT_SET(label, mpl);
-	}
+	if (mpl == NULL)
+		return (ENOMEM);
 
 	mpl->type = found_type;
 	(*claimed)++;

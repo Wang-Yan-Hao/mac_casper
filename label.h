@@ -1,11 +1,6 @@
 #ifndef CASPER_LABEL_H
 #define CASPER_LABEL_H
 
-/* Label structure - Shared by Subject and Object */
-struct mac_casper {
-	unsigned short type;
-};
-
 /* ==========================================================
  * Subject (Process) Definitions
  * ========================================================== */
