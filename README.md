@@ -32,6 +32,9 @@ cd /usr/src/lib/libcasper/libcasper
 sudo make all install
 ```
 
+You need to load if while boot (for set label on vnode). You can
+set `/etc/loader.conf` to do this.
+
 ### Test
 
 All test code is located under the `test_program` folder.

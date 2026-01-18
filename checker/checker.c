@@ -16,6 +16,7 @@
 #include <netinet/in.h>
 #include <netinet/ip6.h>
 
+#include "../mac_policy_ops.h"
 #include "checker.h"
 
 /*
@@ -75,7 +76,7 @@ nameserver_match(char *line, struct sockaddr *sa, bool *pass, int *nserv)
 
 /* DNS checker */
 int
-casper_check_dst_ip(const char *label, struct sockaddr *sa)
+casper_check_dst_ip(const int type, struct sockaddr *sa)
 {
 	char *check_filepath, *buf, *line_start, *newline;
 	int error = 0, nserv = 0, read_once = 0;
@@ -87,11 +88,11 @@ casper_check_dst_ip(const char *label, struct sockaddr *sa)
 	off_t offset = 0;
 	size_t bytes_read = 0;
 
-	if (!label || !sa)
+	if (!(type > 0 && type < CASPER_TYPE_LEN) || sa == NULL)
 		return (EINVAL);
 
 	// Assign check file
-	if (strcmp(label, "dns") == 0)
+	if (type == CASPER_DNS)
 		check_filepath = "/etc/resolv.conf";
 	else
 		return (ENOTSUP);
@@ -176,3 +177,78 @@ done:
 	free(buf, M_TEMP);
 	return (pass ? 0 : EACCES);
 }
+
+/*
+static int
+casper_check_allowed_file(char *original_filename, struct vnode *vp,
+    const char *const *allowed_paths)
+{
+	if (vp == NULL)
+		return (0);
+
+	char *filename = NULL, *freebuf = NULL;
+	int error;
+
+	// Check soft link (original filename)
+	for (int i = 0; allowed_paths[i] != NULL; i++) {
+		if (strcmp(original_filename, allowed_paths[i]) == 0) {
+			((char *)original_filename)[0] = '\0';
+			return (0);
+		}
+	}
+
+	// Resolve full path of vnode
+	error = vn_fullpath(vp, &filename, &freebuf);
+	if (error != 0 || filename == NULL)
+		return (0); // fail-safe allow
+
+	// Compare full path with whitelist
+	for (int i = 0; allowed_paths[i] != NULL; i++) {
+		if (strcmp(filename, allowed_paths[i]) == 0) {
+			free(freebuf, M_TEMP);
+			return (0);
+		}
+	}
+
+	free(freebuf, M_TEMP);
+	return (EACCES);
+}
+static int
+casper_check_allowed_file_on_readlink(char *original_filename, struct vnode *vp,
+    const char *const *allowed_paths, struct mac_casper *obj)
+{
+	if (vp == NULL)
+		return (0);
+
+	char *filename = NULL, *freebuf = NULL;
+	int error;
+
+	// Check soft link (original filename)
+	for (int i = 0; allowed_paths[i] != NULL; i++) {
+		if (strcmp(original_filename, allowed_paths[i]) == 0)
+			return (0);
+	}
+
+	error = vn_fullpath(vp, &filename, &freebuf);
+	if (error != 0 || filename == NULL)
+		return (0);
+
+	int allowed = 0;
+	for (int i = 0; allowed_paths[i] != NULL; i++) {
+		if (strcmp(filename, allowed_paths[i]) == 0) {
+			allowed = 1;
+			break;
+		}
+	}
+
+	free(freebuf, M_TEMP);
+
+	if (!allowed)
+		return (EACCES);
+	else {
+		strlcpy(obj->original_filename, filename,
+		    sizeof(obj->original_filename));
+		return (0);
+	}
+}
+*/

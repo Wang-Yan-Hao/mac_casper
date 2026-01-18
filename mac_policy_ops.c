@@ -11,9 +11,11 @@
 #include <sys/namei.h>
 #include <sys/proc.h>
 #include <sys/protosw.h>
+#include <sys/sbuf.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/vnode.h>
+#include <sys/extattr.h>
 
 #include <vm/vm.h>
 #include <vm/uma.h>
@@ -29,12 +31,15 @@
 #include "checker/checker.h"
 #include "mac_policy_ops.h"
 
+#define MAC_CASPER_EXTATTR_NAMESPACE EXTATTR_NAMESPACE_SYSTEM
+#define MAC_CASPER_EXTATTR_NAME      "casper"
+
 static int casper_slot;
 static uma_zone_t zone_casper;
 
 /* Helper function */
 static inline struct mac_casper *
-casper_get_label(struct ucred *cred)
+casper_get_label(const struct ucred *cred)
 {
 	if (cred == NULL || cred->cr_label == NULL)
 		return NULL;
@@ -42,173 +47,22 @@ casper_get_label(struct ucred *cred)
 	struct mac_casper *label = SLOT(cred->cr_label);
 	return label;
 }
-
-static int
-casper_check_allowed_file(char *original_filename, struct vnode *vp,
-    const char *const *allowed_paths)
-{
-	if (vp == NULL)
-		return (0);
-
-	char *filename = NULL, *freebuf = NULL;
-	int error;
-
-	// Check soft link (original filename)
-	for (int i = 0; allowed_paths[i] != NULL; i++) {
-		if (strcmp(original_filename, allowed_paths[i]) == 0) {
-			((char *)original_filename)[0] = '\0';
-			return (0);
-		}
-	}
-
-	// Resolve full path of vnode
-	error = vn_fullpath(vp, &filename, &freebuf);
-	if (error != 0 || filename == NULL)
-		return (0); // fail-safe allow
-
-	// Compare full path with whitelist
-	for (int i = 0; allowed_paths[i] != NULL; i++) {
-		if (strcmp(filename, allowed_paths[i]) == 0) {
-			free(freebuf, M_TEMP);
-			return (0);
-		}
-	}
-
-	free(freebuf, M_TEMP);
-	return (EACCES);
-}
-
-static int
-casper_check_allowed_file_on_readlink(char *original_filename, struct vnode *vp,
-    const char *const *allowed_paths, struct mac_casper *obj)
-{
-	if (vp == NULL)
-		return (0);
-
-	char *filename = NULL, *freebuf = NULL;
-	int error;
-
-	// Check soft link (original filename)
-	for (int i = 0; allowed_paths[i] != NULL; i++) {
-		if (strcmp(original_filename, allowed_paths[i]) == 0)
-			return (0);
-	}
-
-	error = vn_fullpath(vp, &filename, &freebuf);
-	if (error != 0 || filename == NULL)
-		return (0);
-
-	int allowed = 0;
-	for (int i = 0; allowed_paths[i] != NULL; i++) {
-		if (strcmp(filename, allowed_paths[i]) == 0) {
-			allowed = 1;
-			break;
-		}
-	}
-
-	free(freebuf, M_TEMP);
-
-	if (!allowed)
-		return (EACCES);
-	else {
-		strlcpy(obj->original_filename, filename,
-		    sizeof(obj->original_filename));
-		return (0);
-	}
-}
-
 static int
 casper_deny_default(const struct ucred *cred)
 {
-	if (cred == NULL || cred->cr_label == NULL)
+	struct mac_casper *obj = casper_get_label(cred);
+
+	if (obj == NULL)
 		return (0);
 
-	struct mac_casper *obj = SLOT(cred->cr_label);
-	if (obj == NULL || obj->label[0] == '\0')
-		return (0);
-
-	for (int i = 0; casper_blocked_labels[i] != NULL; i++) {
-		if (strcmp(obj->label, casper_blocked_labels[i]) == 0)
-			return (EACCES);
-	}
+	if (obj->type > CASPER_NONE && obj->type < CASPER_TYPE_LEN)
+		return (EACCES);
 
 	return (0);
 }
 
-/* Funciton Implement Checker */
 /* bpfdsec */
 /* cred */
-static void
-casper_cred_relabel(struct ucred *cred, struct label *newlabel)
-{
-	struct mac_casper *source, *dest;
-
-	if (cred == NULL || newlabel == NULL)
-		return;
-
-	source = SLOT(newlabel);
-	if (source == NULL)
-		return;
-
-	dest = SLOT(cred->cr_label);
-	if (dest == NULL) {
-		// Use M_NOWAIT to prevent sleeping inside a non-sleepable lock
-		dest = uma_zalloc(zone_casper, M_NOWAIT);
-		if (dest == NULL)
-			return;
-
-		memset(dest, 0, sizeof(*dest));
-		SLOT_SET(cred->cr_label, dest);
-		*dest = *source;
-	}
-}
-static void
-casper_cred_destroy_label(struct label *label)
-{
-	struct mac_casper *cur = SLOT(label);
-	if (cur != NULL)
-		uma_zfree(zone_casper, cur);
-	SLOT_SET(label, NULL);
-}
-static int
-casper_mpo_cred_internalize_label_t(struct label *label, char *element_name,
-    char *element_data, int *claimed)
-{
-	struct mac_casper *memory;
-
-	if (element_data == NULL || element_name == NULL)
-		return (EACCES);
-
-	if (strcmp(MAC_CASPER_LABEL_NAME, element_name) != 0)
-		return (0);
-
-	int flag = 0;
-	for (int i = 0; casper_blocked_labels[i] != NULL; i++) {
-		if (strcmp(element_data, casper_blocked_labels[i]) == 0)
-			flag = 1;
-	}
-
-	if (flag == 0)
-		return (EACCES);
-
-	memory = uma_zalloc(zone_casper, M_NOWAIT);
-	if (memory == NULL)
-		return ENOMEM;
-
-	memset(memory, 0, sizeof(struct mac_casper));
-
-	// Safely copy
-	strlcpy(memory->label, element_data, sizeof(memory->label));
-
-	// Ensure original_filename is an empty string
-	memory->original_filename[0] = '\0';
-
-	(*claimed)++;
-
-	SLOT_SET(label, memory);
-
-	return (0);
-}
 static int
 casper_mpo_cred_check_setaudit_t(struct ucred *cred, struct auditinfo *ai)
 {
@@ -548,12 +402,11 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 	if (obj == NULL)
 		return (0);
 
-	if (strcmp(obj->label, "dns") == 0)
-		return casper_check_dst_ip(obj->label, sa);
-	else if (strcmp(obj->label, "fileargs") == 0 ||
-	    strcmp(obj->label, "grp") == 0 ||
-	    strcmp(obj->label, "netdb") == 0 ||
-	    strcmp(obj->label, "pwd") == 0 || strcmp(obj->label, "sysctl") == 0)
+	if (obj->type == CASPER_DNS)
+		return casper_check_dst_ip(obj->type, sa);
+	else if (obj->type == CASPER_FILEARGS || obj->type == CASPER_GRP ||
+	    obj->type == CASPER_NETDB || obj->type == CASPER_PWD ||
+	    obj->type == CASPER_SYSCTL == 0)
 		return (EACCES);
 
 	return (0);
@@ -566,14 +419,11 @@ casper_mpo_socket_check_create_t(struct ucred *cred, int domain, int type,
 	if (obj == NULL)
 		return (0);
 
-	if (strcmp(obj->label, "dns") == 0)
+	if (obj->type == CASPER_DNS == 0)
 		return (0);
-	else if (strcmp(obj->label, "fileargs") == 0 ||
-	    strcmp(obj->label, "grp") == 0 ||
-	    strcmp(obj->label, "netdb") == 0 ||
-	    strcmp(obj->label, "pwd") == 0 ||
-	    strcmp(obj->label, "sysctl") == 0 ||
-	    strcmp(obj->label, "syslog") == 0) {
+	else if (obj->type == CASPER_FILEARGS || obj->type == CASPER_GRP ||
+	    obj->type == CASPER_NETDB || obj->type == CASPER_PWD ||
+	    obj->type == CASPER_SYSCTL || obj->type == CASPER_SYSLOG) {
 		if (domain != PF_UNIX)
 			return (EACCES);
 		return (0);
@@ -595,12 +445,9 @@ casper_mpo_socket_check_poll_t(struct ucred *cred, struct socket *so,
 	if (obj == NULL)
 		return (0);
 
-	if (strcmp(obj->label, "fileargs") == 0 ||
-	    strcmp(obj->label, "grp") == 0 ||
-	    strcmp(obj->label, "netdb") == 0 ||
-	    strcmp(obj->label, "pwd") == 0 ||
-	    strcmp(obj->label, "sysctl") == 0 ||
-	    strcmp(obj->label, "syslog") == 0) {
+	if (obj->type == CASPER_FILEARGS || obj->type == CASPER_GRP ||
+	    obj->type == CASPER_NETDB || obj->type == CASPER_PWD ||
+	    obj->type == CASPER_SYSCTL || obj->type == CASPER_SYSLOG) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return (0);
 		return (EACCES);
@@ -616,12 +463,9 @@ casper_mpo_socket_check_receive_t(struct ucred *cred, struct socket *so,
 	if (obj == NULL)
 		return (0);
 
-	if (strcmp(obj->label, "fileargs") == 0 ||
-	    strcmp(obj->label, "grp") == 0 ||
-	    strcmp(obj->label, "netdb") == 0 ||
-	    strcmp(obj->label, "pwd") == 0 ||
-	    strcmp(obj->label, "sysctl") == 0 ||
-	    strcmp(obj->label, "syslog") == 0) {
+	if (obj->type == CASPER_FILEARGS || obj->type == CASPER_GRP ||
+	    obj->type == CASPER_NETDB || obj->type == CASPER_PWD ||
+	    obj->type == CASPER_SYSCTL || obj->type == CASPER_SYSLOG) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return (0);
 		return (EACCES);
@@ -643,12 +487,9 @@ casper_mpo_socket_check_send_t(struct ucred *cred, struct socket *so,
 	if (obj == NULL)
 		return (0);
 
-	if (strcmp(obj->label, "fileargs") == 0 ||
-	    strcmp(obj->label, "grp") == 0 ||
-	    strcmp(obj->label, "netdb") == 0 ||
-	    strcmp(obj->label, "pwd") == 0 ||
-	    strcmp(obj->label, "sysctl") == 0 ||
-	    strcmp(obj->label, "syslog") == 0) {
+	if (obj->type == CASPER_FILEARGS || obj->type == CASPER_GRP ||
+	    obj->type == CASPER_NETDB || obj->type == CASPER_PWD ||
+	    obj->type == CASPER_SYSCTL || obj->type == CASPER_SYSLOG) {
 		if (so->so_proto->pr_domain->dom_family == AF_UNIX)
 			return (0);
 		return (EACCES);
@@ -718,13 +559,11 @@ casper_mpo_system_check_sysctl_t(struct ucred *cred, struct sysctl_oid *oidp,
 	if (obj == NULL)
 		return (0);
 
-	if (strcmp(obj->label, "dns") == 0 ||
-	    strcmp(obj->label, "sysctl") == 0 ||
-	    strcmp(obj->label, "syslog") == 0)
+	if (obj->type == CASPER_DNS || obj->type == CASPER_SYSCTL ||
+	    obj->type == CASPER_SYSLOG)
 		return (0);
-	else if (strcmp(obj->label, "fileargs") == 0 ||
-	    strcmp(obj->label, "grp") == 0 ||
-	    strcmp(obj->label, "netdb") == 0 || strcmp(obj->label, "pwd") == 0)
+	else if (obj->type == CASPER_FILEARGS || obj->type == CASPER_GRP ||
+	    obj->type == CASPER_NETDB || obj->type == CASPER_PWD)
 		return (EACCES);
 
 	return (0);
@@ -819,6 +658,7 @@ casper_mpo_sysvshm_check_shmget_t(struct ucred *cred,
 	return casper_deny_default(cred);
 }
 /* thread */
+
 /* vnode */
 static int
 casper_mpo_vnode_check_access_t(struct ucred *cred, struct vnode *vp,
@@ -837,26 +677,6 @@ casper_mpo_vnode_check_chroot_t(struct ucred *cred, struct vnode *dvp,
     struct label *dvplabel)
 {
 	return casper_deny_default(cred);
-}
-static int
-casper_mpo_vnode_check_create_t(struct ucred *cred, struct vnode *dvp,
-    struct label *dvplabel, struct componentname *cnp, struct vattr *vap)
-{
-	struct mac_casper *obj = casper_get_label(cred);
-	if (obj == NULL)
-		return (0);
-
-	if (strcmp(obj->label, "fileargs") == 0)
-		return (0);
-	else if (strcmp(obj->label, "dns") == 0 ||
-	    strcmp(obj->label, "grp") == 0 ||
-	    strcmp(obj->label, "netdb") == 0 ||
-	    strcmp(obj->label, "pwd") == 0 ||
-	    strcmp(obj->label, "sysctl") == 0 ||
-	    strcmp(obj->label, "syslog") == 0)
-		return (EACCES);
-
-	return (0);
 }
 static int
 casper_mpo_vnode_check_deleteacl_t(struct ucred *cred, struct vnode *vp,
@@ -914,99 +734,14 @@ casper_mpo_vnode_check_mprotect_t(struct ucred *cred, struct vnode *vp,
 	return casper_deny_default(cred);
 }
 static int
-casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
-    struct label *label, int acc_mode)
-{
-	struct mac_casper *obj = casper_get_label(cred);
-	if (obj == NULL)
-		return (0);
-
-	if (strcmp(obj->label, "dns") == 0)
-		return casper_check_allowed_file(obj->original_filename, vp,
-		    casper_dns_allowed_files_open);
-	else if (strcmp(obj->label, "fileargs") == 0)
-		return (0);
-	else if (strcmp(obj->label, "grp") == 0)
-		return casper_check_allowed_file(obj->original_filename, vp,
-		    grp_allowed_files_open);
-	else if (strcmp(obj->label, "netdb") == 0)
-		return casper_check_allowed_file(obj->original_filename, vp,
-		    netdb_allowed_files_open);
-	else if (strcmp(obj->label, "pwd") == 0)
-		return casper_check_allowed_file(obj->original_filename, vp,
-		    pwd_allowed_files_open);
-	else if (strcmp(obj->label, "sysctl") == 0)
-		return casper_check_allowed_file(obj->original_filename, vp,
-		    sysctl_allowed_files_open);
-	else if (strcmp(obj->label, "syslog") == 0)
-		return casper_check_allowed_file(obj->original_filename, vp,
-		    syslog_allowed_files_open);
-
-	return (0);
-}
-static int
 casper_mpo_vnode_check_poll_t(struct ucred *active_cred,
     struct ucred *file_cred, struct vnode *vp, struct label *vplabel)
 {
 	return casper_deny_default(active_cred);
 }
 static int
-casper_mpo_vnode_check_read_t(struct ucred *active_cred,
-    struct ucred *file_cred, struct vnode *vp, struct label *vplabel)
-{
-	struct mac_casper *obj = casper_get_label(active_cred);
-	if (obj == NULL)
-		return (0);
-
-	if (strcmp(obj->label, "fileargs") == 0)
-		return (EACCES);
-
-	return (0);
-}
-static int
 casper_mpo_vnode_check_readdir_t(struct ucred *cred, struct vnode *dvp,
     struct label *dvplabel)
-{
-	return casper_deny_default(cred);
-}
-static int
-casper_mpo_vnode_check_readlink_t(struct ucred *cred, struct vnode *vp,
-    struct label *vplabel)
-{
-	if (cred == NULL || cred->cr_label == NULL)
-		return (0);
-
-	struct mac_casper *obj = SLOT(cred->cr_label);
-	if (obj == NULL)
-		return (0);
-
-	if (strcmp(obj->label, "dns") == 0)
-		return casper_check_allowed_file_on_readlink(
-		    obj->original_filename, vp, casper_dns_allowed_files_open,
-		    obj);
-	else if (strcmp(obj->label, "fileargs") == 0)
-		return (0);
-	else if (strcmp(obj->label, "grp") == 0)
-		return casper_check_allowed_file_on_readlink(
-		    obj->original_filename, vp, grp_allowed_files_open, obj);
-	else if (strcmp(obj->label, "netdb") == 0)
-		return casper_check_allowed_file_on_readlink(
-		    obj->original_filename, vp, netdb_allowed_files_open, obj);
-	else if (strcmp(obj->label, "pwd") == 0)
-		return casper_check_allowed_file_on_readlink(
-		    obj->original_filename, vp, pwd_allowed_files_open, obj);
-	else if (strcmp(obj->label, "sysctl") == 0)
-		return casper_check_allowed_file_on_readlink(
-		    obj->original_filename, vp, sysctl_allowed_files_open, obj);
-	else if (strcmp(obj->label, "syslog") == 0)
-		return casper_check_allowed_file_on_readlink(
-		    obj->original_filename, vp, syslog_allowed_files_open, obj);
-
-	return (0);
-}
-static int
-casper_mpo_vnode_check_relabel_t(struct ucred *cred, struct vnode *vp,
-    struct label *vplabel, struct label *newlabel)
 {
 	return casper_deny_default(cred);
 }
@@ -1037,12 +772,6 @@ casper_mpo_vnode_check_setacl_t(struct ucred *cred, struct vnode *vp,
 	return casper_deny_default(cred);
 }
 static int
-casper_mpo_vnode_check_setextattr_t(struct ucred *cred, struct vnode *vp,
-    struct label *vplabel, int attrnamespace, const char *name)
-{
-	return casper_deny_default(cred);
-}
-static int
 casper_mpo_vnode_check_setflags_t(struct ucred *cred, struct vnode *vp,
     struct label *vplabel, u_long flags)
 {
@@ -1067,6 +796,82 @@ casper_mpo_vnode_check_setutimes_t(struct ucred *cred, struct vnode *vp,
 	return casper_deny_default(cred);
 }
 static int
+casper_mpo_vnode_check_unlink_t(struct ucred *cred, struct vnode *dvp,
+								struct label *dvplabel, struct vnode *vp, struct label *vplabel,
+								struct componentname *cnp)
+{
+	return casper_deny_default(cred);
+}
+static int
+casper_mpo_vnode_check_write_t(struct ucred *active_cred,
+							   struct ucred *file_cred, struct vnode *vp, struct label *vplabel)
+{
+	return casper_deny_default(active_cred);
+}
+static int
+casper_mpo_vnode_execve_will_transition_t(struct ucred *old, struct vnode *vp,
+										  struct label *vplabel, struct label *interpvplabel,
+										  struct image_params *imgp, struct label *execlabel)
+{
+	return casper_deny_default(old);
+}
+
+/* vnode check */
+static int
+casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
+							struct label *label, int acc_mode)
+{
+	struct mac_casper *subj, *obj;
+
+	subj = casper_get_label(cred);
+
+	if (subj == NULL)
+		return (0);
+
+	if (label == NULL)
+		return (EACCES);
+
+	obj = SLOT(label);
+
+	if (obj == NULL) // Casper label process can't read other file
+		return (EACCES);
+
+	if (subj->type == obj->type)
+		return (0);
+
+	return (EACCES);
+}
+static int
+casper_mpo_vnode_check_create_t(struct ucred *cred, struct vnode *dvp,
+								struct label *dvplabel, struct componentname *cnp, struct vattr *vap)
+{
+	struct mac_casper *obj = casper_get_label(cred);
+	if (obj == NULL)
+		return (0);
+
+	if (obj->type == CASPER_FILEARGS)
+		return (0);
+	else if (obj->type == CASPER_DNS || obj->type == CASPER_GRP ||
+		obj->type == CASPER_NETDB || obj->type == CASPER_PWD ||
+		obj->type == CASPER_SYSCTL || obj->type == CASPER_SYSLOG)
+		return (EACCES);
+
+	return (0);
+}
+static int
+casper_mpo_vnode_check_read_t(struct ucred *active_cred,
+							  struct ucred *file_cred, struct vnode *vp, struct label *vplabel)
+{
+	struct mac_casper *obj = casper_get_label(active_cred);
+	if (obj == NULL)
+		return (0);
+
+	if (obj->type == CASPER_FILEARGS)
+		return (EACCES);
+
+	return (0);
+}
+static int
 casper_mpo_vnode_check_stat_t(struct ucred *active_cred,
     struct ucred *file_cred, struct vnode *vp, struct label *vplabel)
 {
@@ -1074,50 +879,16 @@ casper_mpo_vnode_check_stat_t(struct ucred *active_cred,
 	if (obj == NULL)
 		return (0);
 
-	if (strcmp(obj->label, "dns") == 0 ||
-	    strcmp(obj->label, "fileargs") == 0 ||
-	    strcmp(obj->label, "grp") == 0 ||
-	    strcmp(obj->label, "netdb") == 0 || strcmp(obj->label, "pwd") == 0)
+	if (obj->type == CASPER_DNS || obj->type == CASPER_FILEARGS ||
+	    obj->type == CASPER_GRP || obj->type == CASPER_NETDB ||
+	    obj->type == CASPER_PWD)
 		return (0);
-	else if (strcmp(obj->label, "sysctl") == 0 ||
-	    strcmp(obj->label, "syslog") == 0)
+	else if (obj->type == CASPER_SYSCTL || obj->type == CASPER_SYSLOG)
 		return (EACCES);
 
 	return (0);
 }
-static int
-casper_mpo_vnode_check_unlink_t(struct ucred *cred, struct vnode *dvp,
-    struct label *dvplabel, struct vnode *vp, struct label *vplabel,
-    struct componentname *cnp)
-{
-	return casper_deny_default(cred);
-}
-static int
-casper_mpo_vnode_check_write_t(struct ucred *active_cred,
-    struct ucred *file_cred, struct vnode *vp, struct label *vplabel)
-{
-	return casper_deny_default(active_cred);
-}
-static int
-casper_mpo_vnode_create_extattr_t(struct ucred *cred, struct mount *mp,
-    struct label *mplabel, struct vnode *dvp, struct label *dvplabel,
-    struct vnode *vp, struct label *vplabel, struct componentname *cnp)
-{
-	return casper_deny_default(cred);
-}
-static int
-casper_mpo_vnode_execve_will_transition_t(struct ucred *old, struct vnode *vp,
-    struct label *vplabel, struct label *interpvplabel,
-    struct image_params *imgp, struct label *execlabel)
-{
-	return casper_deny_default(old);
-}
-static int
-casper_mpo_vnode_setlabel_extattr_t(struct ucred *cred, struct vnode *vp,
-    struct label *vplabel, struct label *intlabel)
-{
-	return casper_deny_default(cred);
-}
+
 /* init */
 static void
 casper_init(struct mac_policy_conf *conf)
@@ -1134,13 +905,321 @@ casper_destroy(struct mac_policy_conf *mpc)
 	if (zone_casper != NULL) {
 		uma_zdestroy(zone_casper);
 		zone_casper = NULL;
+		printf("CasperMAC: Zone destroyed.\n");
 	}
 }
 
+
+/* Common label function */
+static void
+casper_destroy_label(struct label *label)
+{
+	struct mac_casper *mpl;
+
+	mpl = SLOT(label);
+
+	if (mpl != NULL) {
+		printf("casper_destroy_lable with mpl != NULL\n");
+		uma_zfree(zone_casper, mpl);
+		SLOT_SET(label, NULL);
+	}
+}
+static int
+casper_mpo_internalize_label(struct label *label, char *element_name,
+							 char *element_data, int *claimed)
+{
+	printf("casper_mpo_internalize_label() start\n");
+	struct mac_casper *mpl;
+	enum casper_label_type found_type = CASPER_NONE;
+
+	if (element_data == NULL || element_name == NULL)
+		return (EINVAL);
+
+	if (strcmp(MAC_CASPER_LABEL_NAME, element_name) != 0)
+		return (0);
+
+	for (int i = 0; casper_label_map[i].name != NULL; i++) {
+		if (strcmp(element_data, casper_label_map[i].name) == 0) {
+			found_type = casper_label_map[i].type;
+			break;
+		}
+	}
+
+	if (found_type == CASPER_NONE)
+		return (EINVAL);
+
+	mpl = SLOT(label);
+
+	if (mpl == NULL) {
+		printf("casper_mpo_internalize_label() mpl is NULL\n");
+		mpl = uma_zalloc(zone_casper, M_NOWAIT | M_ZERO);
+
+		if (mpl == NULL)
+			return (ENOMEM);
+
+		SLOT_SET(label, mpl);
+	}
+
+	mpl->type = found_type;
+	(*claimed)++;
+
+	printf("capser_mpo_internzlize_labe() done\n");
+	return (0);
+}
+static int
+casper_mpo_externalize_label(struct label *label, char *element_name,
+							 struct sbuf *sb, int *claimed)
+{
+	printf("casper_mpo_externalize_label() with element_name %s\n", element_name);
+	struct mac_casper *mpl;
+	const char *result_name = NULL;
+
+	if (strcmp(MAC_CASPER_LABEL_NAME, element_name) != 0)
+		return (0);
+
+	mpl = SLOT(label);
+
+	if (mpl == NULL) {
+		printf("casper_mpo_externalize_label() mpo is NULL\n");
+		return (0);
+	}
+
+	for (int i = 0; casper_label_map[i].name != NULL; i++) {
+		if (casper_label_map[i].type == mpl->type) {
+			result_name = casper_label_map[i].name;
+			break;
+		}
+	}
+
+	if (result_name != NULL) {
+		if (sbuf_printf(sb, "%s", result_name) == -1)
+			return (ENOMEM);
+
+		(*claimed)++;
+	}
+
+	return (0);
+}
+
+/* vnode label*/
+static void
+casper_vnode_init_label(struct label *label)
+{
+	struct mac_casper *c_label;
+
+	/* 1. 從 Zone 分配記憶體 */
+	c_label = uma_zalloc(zone_casper, M_WAITOK | M_ZERO);
+
+	/* 2. 設定預設值 (例如 CASPER_NONE) */
+	c_label->type = CASPER_NONE;
+
+	/* 3. 把記憶體掛載到 Slot 上 */
+	SLOT_SET(label, c_label);
+
+	return;
+}
+static int
+casper_mpo_vnode_check_relabel(struct ucred *cred, struct vnode *vp,
+							   struct label *vplabel, struct label *newlabel)
+{
+	printf("casper_mpo_vnode_check_relabel()\n");
+	return 0;
+}
+static void
+casper_mpo_vnode_relabel(struct ucred *cred, struct vnode *vp,
+						 struct label *vplabel, struct label *label)
+{
+	printf("casper_mpo_vnode_relabel() start\n");
+	struct mac_casper *src, *dst;
+
+	if (label == NULL) {
+		printf("src label is null\n");
+		return;
+	}
+	if (vplabel == NULL) {
+		printf("dst label is null\n");
+		return;
+	}
+
+	src = SLOT(label);
+	dst = SLOT(vplabel);
+
+	if (src == NULL) {
+		printf("src is null\n");
+	}
+	if (dst == NULL) {
+		printf("dst is null\n");
+
+		dst = uma_zalloc(zone_casper, M_NOWAIT | M_ZERO);
+		if (dst == NULL) {
+			printf("dst is null for zalloc\n");
+			return;
+		}
+		SLOT_SET(vplabel, dst);
+	}
+	dst->type = src->type;
+	printf("casper_mpo_vnode_relabel() done\n");
+}
+static void
+casper_mpo_vnode_copy_label(struct label *src, struct label *dest)
+{
+	printf("casper_mpo_vnode_copy_label() start\n");
+	if (src == NULL) {
+		printf("src label is NULL\n");
+		return;
+	}
+	else if (dest == NULL) {
+		printf("dest label is NULL\n");
+		return;
+	}
+
+	struct mac_casper *s, *d;
+	s = SLOT(src);
+	d = SLOT(dest);
+
+	if (s == NULL || d == NULL) {
+		printf("casper_mpo_vnode_copy_label() s == NULL or d == NULL\n");
+		return;
+	}
+
+	*d = *s;
+	printf("casper_mpo_vnode_copy_label() done\n");
+}
+static int
+casper_mpo_vnode_check_setextattr(struct ucred *cred, struct vnode *vp,
+								  struct label *vplabel, int attrnamespace, const char *name)
+{
+	printf("casper_mpo_vnode_check_setextattr() with name %s\n", name);
+	return 0;
+}
+static int
+casper_mpo_vnode_setlabel_extattr(struct ucred *cred, struct vnode *vp,
+								  struct label *vplabel, struct label *intlabel)
+{
+	printf("casper_mpo_vnode_setlabel_extattr() start\n");
+	struct mac_casper *src;
+	size_t buflen;
+	int error;
+
+	src = SLOT(intlabel);
+	buflen = sizeof(struct mac_casper);
+
+	// 檢查 1: 確認 Label Slot 是否存在
+	if (src == NULL) {
+		printf("casper_mpo_vnode_setlabel_extattr: Error - label slot is NULL\n");
+		// 通常回傳 EINVAL (Invalid Argument) 或 0 (忽略)
+		return (EINVAL);
+	}
+
+	// 寫入硬碟
+	// 注意：原本你的程式碼寫 (char *)source，但變數宣告是 src，這裡已修正為 src
+	error = vn_extattr_set(vp, IO_NODELOCKED, MAC_CASPER_EXTATTR_NAMESPACE,
+						   MAC_CASPER_EXTATTR_NAME, buflen, (char *)src, curthread);
+
+	// 檢查 2: 確認寫入是否成功
+	if (error != 0) {
+		// 如果 error 是 EOPNOTSUPP (45)，代表該檔案系統不支援 Extended Attributes
+		// 如果 error 是 EACCES (13) 或 EPERM (1)，代表權限不足
+		printf("casper_mpo_vnode_setlabel_extattr: Failed to write extattr! error = %d\n", error);
+	}
+
+	return (error);
+}
+static int
+casper_mpo_vnode_associate_extattr(struct mount *mp, struct label *mplabel,
+								   struct vnode *vp, struct label *vplabel)
+{
+	printf("casper_mpo_vnode_associate_extattr() start\n");
+	struct mac_casper *dest;
+	int error;
+	int len;
+
+	if (vplabel == NULL) {
+		printf("vplabel is NULL\n");
+		return 0;
+	}
+
+	// source = SLOT(mplabel);
+	dest = SLOT(vplabel);
+
+	// if (source == NULL) {
+	// 	printf("source is NULL\n");
+	// 	return 0;
+	// }
+
+	if (dest == NULL) {
+		printf("dest is NULL\n");
+		return 0;
+	}
+
+	/* 設定要讀取的大小：整個結構 */
+	len = sizeof(struct mac_casper);
+
+	/* 讀取磁碟上的二進位資料 */
+	error = vn_extattr_get(vp, IO_NODELOCKED,
+						   MAC_CASPER_EXTATTR_NAMESPACE,
+						MAC_CASPER_EXTATTR_NAME,
+						&len,
+						(char *)dest, // 直接寫入結構指標
+						   curthread);
+
+	/* 4. Handle "File has no label" (The part you asked for) */
+	if (error == ENOATTR || error == EOPNOTSUPP) {
+		/* * The file on disk has no extended attribute.
+		 * We simply mark the memory label as NONE (Empty).
+		 * We return 0 (Success) so the OS lets the file load normally.
+		 */
+		dest->type = CASPER_NONE;
+		return (0);
+	}
+
+	/* 5. Handle real errors (Disk corruption, I/O error) */
+	if (error) {
+		return (error);
+	}
+
+	/* 6. Verify data size (If read was successful) */
+	if (len != sizeof(struct mac_casper)) {
+		/* Data on disk is wrong size? Treat as empty. */
+		printf("casper: bad label size, resetting to NONE\n");
+		dest->type = CASPER_NONE;
+		return (0);
+	}
+
+	return (0);
+}
+
+/* cred label */
 static void
 casper_cred_init_label(struct label *label)
 {
 	return;
+}
+static void
+casper_cred_relabel(struct ucred *cred, struct label *newlabel)
+{
+	struct mac_casper *src, *dst;
+
+	if (cred == NULL || newlabel == NULL)
+		return;
+
+	dst = SLOT(cred->cr_label);
+	src = SLOT(newlabel);
+
+	if (src == NULL) {
+		printf("casper_cred_relabel src is NULL");
+		return;
+	}
+
+	if (dst == NULL) {
+		printf("casper_cred_relabel dst is NULL\n");
+		dst = uma_zalloc(zone_casper, M_NOWAIT | M_ZERO);
+		if (dst == NULL)
+			return;
+		SLOT_SET(cred->cr_label, dst);
+	}
+
+	dst->type = src->type;
 }
 
 /* Base structure */
@@ -1150,8 +1229,6 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_destroy = casper_destroy, // Enable
 	/* bpfdsec */
 	/* cred */
-	// .mpo_cred_check_relabel = ... // Allow relabel
-	.mpo_cred_init_label = casper_cred_init_label,
 	.mpo_cred_check_setaudit = casper_mpo_cred_check_setaudit_t,
 	.mpo_cred_check_setaudit_addr = casper_mpo_cred_check_setaudit_addr_t,
 	.mpo_cred_check_setauid = casper_mpo_cred_check_setauid_t,
@@ -1166,11 +1243,6 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_cred_check_setreuid = casper_mpo_cred_check_setreuid_t,
 	.mpo_cred_check_setuid = casper_mpo_cred_check_setuid_t,
 	.mpo_cred_check_visible = casper_mpo_cred_check_visible_t,
-	.mpo_cred_destroy_label =
-	    casper_cred_destroy_label, // Free the tag memory
-	.mpo_cred_internalize_label =
-	    casper_mpo_cred_internalize_label_t, // Give tag name
-	.mpo_cred_relabel = casper_cred_relabel, // Enable and malloc memory
 	/* ddb */
 	/* devfs */
 	/* ifnet */
@@ -1272,11 +1344,11 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_sysvshm_check_shmdt = casper_mpo_sysvshm_check_shmdt_t,
 	.mpo_sysvshm_check_shmget = casper_mpo_sysvshm_check_shmget_t,
 	/* thread */
-	/* vnode */
+
+	/* vnode disable */
 	.mpo_vnode_check_access = casper_mpo_vnode_check_access_t,
 	.mpo_vnode_check_chdir = casper_mpo_vnode_check_chdir_t,
 	.mpo_vnode_check_chroot = casper_mpo_vnode_check_chroot_t,
-	.mpo_vnode_check_create = casper_mpo_vnode_check_create_t, // Check
 	.mpo_vnode_check_deleteacl = casper_mpo_vnode_check_deleteacl_t,
 	.mpo_vnode_check_deleteextattr = casper_mpo_vnode_check_deleteextattr_t,
 	.mpo_vnode_check_exec = casper_mpo_vnode_check_exec_t,
@@ -1284,33 +1356,53 @@ static struct mac_policy_ops caspe_mac_policy_ops = {
 	.mpo_vnode_check_getextattr = casper_mpo_vnode_check_getextattr_t,
 	.mpo_vnode_check_link = casper_mpo_vnode_check_link_t,
 	.mpo_vnode_check_listextattr = casper_mpo_vnode_check_listextattr_t,
-	// .mpo_vnode_check_lookup = ..., // Enable
 	.mpo_vnode_check_mmap = casper_mpo_vnode_check_mmap_t,
 	.mpo_vnode_check_mprotect = casper_mpo_vnode_check_mprotect_t,
-	.mpo_vnode_check_open =
-	    casper_mpo_vnode_check_open, // Can only open restrict files
 	.mpo_vnode_check_poll = casper_mpo_vnode_check_poll_t,
-	.mpo_vnode_check_read = casper_mpo_vnode_check_read_t, // Check
 	.mpo_vnode_check_readdir = casper_mpo_vnode_check_readdir_t,
-	.mpo_vnode_check_readlink =
-	    casper_mpo_vnode_check_readlink_t, // DNS softlink
-	.mpo_vnode_check_relabel = casper_mpo_vnode_check_relabel_t,
 	.mpo_vnode_check_rename_from = casper_mpo_vnode_check_rename_from_t,
 	.mpo_vnode_check_rename_to = casper_mpo_vnode_check_rename_to_t,
 	.mpo_vnode_check_revoke = casper_mpo_vnode_check_revoke_t,
 	.mpo_vnode_check_setacl = casper_mpo_vnode_check_setacl_t,
-	.mpo_vnode_check_setextattr = casper_mpo_vnode_check_setextattr_t,
 	.mpo_vnode_check_setflags = casper_mpo_vnode_check_setflags_t,
 	.mpo_vnode_check_setmode = casper_mpo_vnode_check_setmode_t,
 	.mpo_vnode_check_setowner = casper_mpo_vnode_check_setowner_t,
 	.mpo_vnode_check_setutimes = casper_mpo_vnode_check_setutimes_t,
-	.mpo_vnode_check_stat = casper_mpo_vnode_check_stat_t, // Check
 	.mpo_vnode_check_unlink = casper_mpo_vnode_check_unlink_t,
 	.mpo_vnode_check_write = casper_mpo_vnode_check_write_t,
-	.mpo_vnode_create_extattr = casper_mpo_vnode_create_extattr_t,
-	.mpo_vnode_execve_will_transition =
-	    casper_mpo_vnode_execve_will_transition_t,
-	.mpo_vnode_setlabel_extattr = casper_mpo_vnode_setlabel_extattr_t,
+	.mpo_vnode_execve_will_transition = casper_mpo_vnode_execve_will_transition_t,
+
+	/* vnode check */
+	// .mpo_vnode_check_lookup = ... // Allow lookup
+	// .mpo_vnode_check_readlink = ... // Allow readlink
+	/* TODO
+	.mpo_vnode_check_open = casper_mpo_vnode_check_open, Can only open restrict files
+	*/
+	.mpo_vnode_check_read = casper_mpo_vnode_check_read_t, // Check
+	.mpo_vnode_check_stat = casper_mpo_vnode_check_stat_t, // Check
+	.mpo_vnode_check_create = casper_mpo_vnode_check_create_t, // Check
+
+	/* vnode label */
+	// .mpo_vnode_create_extattr = ... // New file don't have label
+	.mpo_vnode_init_label = casper_vnode_init_label,
+	.mpo_vnode_destroy_label = casper_destroy_label,
+	.mpo_vnode_check_relabel = casper_mpo_vnode_check_relabel,
+	.mpo_vnode_relabel = casper_mpo_vnode_relabel,
+	.mpo_vnode_copy_label = casper_mpo_vnode_copy_label,
+	.mpo_vnode_check_setextattr = casper_mpo_vnode_check_setextattr,
+	.mpo_vnode_setlabel_extattr = casper_mpo_vnode_setlabel_extattr,
+	.mpo_vnode_associate_extattr = casper_mpo_vnode_associate_extattr,
+	.mpo_vnode_internalize_label = casper_mpo_internalize_label,
+	.mpo_vnode_externalize_label = casper_mpo_externalize_label,
+
+	/* cred label */
+	// .mpo_cred_check_relabel = ... // Allow relabel
+	.mpo_cred_init_label = casper_cred_init_label,	// WARNING, do nothing but need implement
+	.mpo_cred_destroy_label = casper_destroy_label, // Free the tag memory
+	.mpo_cred_relabel = casper_cred_relabel,	// Copy tag and allocate memory
+	.mpo_cred_internalize_label =
+	    casper_mpo_internalize_label, // Resolve tag name and allocate memory
+	.mpo_cred_externalize_label = casper_mpo_externalize_label,
 };
 
 /* Register */

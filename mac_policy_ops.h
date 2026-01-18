@@ -6,53 +6,40 @@
 
 static const char *MAC_CASPER_LABEL_NAME = "casper"; /* Module label */
 
-/* My label structure */
+/* Label type */
+enum casper_label_type {
+	CASPER_NONE = 0, /* Not Label */
+	CASPER_DNS,
+	CASPER_FILEARGS,
+	CASPER_GRP,
+	CASPER_NETDB,
+	CASPER_PWD,
+	CASPER_SYSCTL,
+	CASPER_SYSLOG,
+	CASPER_TYPE_LEN,
+};
+
+/* Label structure */
 struct mac_casper {
-	char label[20];
-	char original_filename[40];
+	enum casper_label_type type;
 };
 
 static const char *casper_blocked_labels[] = {
 	/* List of blocked labels */
-	"dns", "fileargs", "grp", "netdb", "pwd", "sysctl", "syslog",
-	// Add more labels here in the future
-	NULL
+	"dns", "fileargs", "grp", "netdb", "pwd", "sysctl", "syslog", NULL
 };
 
-/* DNS */
-static const char *casper_dns_allowed_files_open[] = {
-	"/etc/nsswitch.conf", "/etc/hosts", "/etc/resolv.conf", "/etc/services",
-	NULL // Sentinel
+/* Label string map */
+struct casper_label_mapping {
+	const char *name;
+	enum casper_label_type type;
 };
 
-/* GRP */
-static const char *grp_allowed_files_open[] = {
-	"/etc/nsswitch.conf", "/etc/group", "/var/db/cache/group.cache",
-	NULL // Sentinel
-};
-
-/* NETDB */
-static const char *netdb_allowed_files_open[] = {
-	"/etc/nsswitch.conf", "/etc/protocols",
-	NULL // Sentinel
-};
-
-/* PWD */
-static const char *pwd_allowed_files_open[] = {
-	"/etc/nsswitch.conf", "/etc/spwd.db", "/etc/pwd.db",
-	NULL // Sentinel
-};
-
-/* SYSCTL */
-static const char *sysctl_allowed_files_open[] = {
-	"/etc/pwd.db",
-	NULL // Sentinel
-};
-
-/* SYSLOG */
-static const char *syslog_allowed_files_open[] = {
-	"/var/run/log", "/etc/localtime", "/etc/pwd.db",
-	NULL // Sentinel
+static const struct casper_label_mapping casper_label_map[] = {
+	{ "dns", CASPER_DNS }, { "fileargs", CASPER_FILEARGS },
+	{ "grp", CASPER_GRP }, { "netdb", CASPER_NETDB }, { "pwd", CASPER_PWD },
+	{ "sysctl", CASPER_SYSCTL }, { "syslog", CASPER_SYSLOG },
+	{ NULL, CASPER_NONE }
 };
 
 #endif // CASPER_MAC_H
