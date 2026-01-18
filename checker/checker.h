@@ -27,7 +27,7 @@ static const char *netdb_allowed_files_open[] = {
 
 /* PWD */
 static const char *pwd_allowed_files_open[] = {
-	"/etc/nsswitch.conf", "/etc/spwd.db", "/etc/pwd.db",
+	"/etc/nsswitch.conf", "/etc/pwd.db", "/etc/spwd.db",
 	NULL // Sentinel
 };
 

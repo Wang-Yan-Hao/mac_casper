@@ -16,6 +16,7 @@
 #include <netinet/in.h>
 #include <netinet/ip6.h>
 
+#include "../label.h"
 #include "../mac_policy_ops.h"
 #include "checker.h"
 
@@ -88,11 +89,11 @@ casper_check_dst_ip(const int type, struct sockaddr *sa)
 	off_t offset = 0;
 	size_t bytes_read = 0;
 
-	if (!(type > 0 && type < CASPER_TYPE_LEN) || sa == NULL)
+	if (!(type > 0 && type < SUB_LABEL_LEN) || sa == NULL)
 		return (EINVAL);
 
 	// Assign check file
-	if (type == CASPER_DNS)
+	if (type == SUB_DNS)
 		check_filepath = "/etc/resolv.conf";
 	else
 		return (ENOTSUP);
