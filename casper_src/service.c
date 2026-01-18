@@ -380,8 +380,6 @@ stdnull(void)
 
 	if (fd > STDERR_FILENO)
 		close(fd);
-	printf("service_clean return\n");
-
 }
 
 static void
@@ -391,16 +389,13 @@ service_clean(int *sockp, int *procfdp, uint64_t flags)
 
 	fd_fix_environment(sockp);
 	fd_fix_environment(procfdp);
-	printf("service_clean return\n");
 
 	assert(*sockp > STDERR_FILENO);
 	assert(*procfdp > STDERR_FILENO);
 	assert(*sockp != *procfdp);
-	printf("service_clean return\n");
 
 	if ((flags & CASPER_SERVICE_STDIO) == 0)
 		stdnull();
-	printf("service_clean return\n");
 
 	if ((flags & CASPER_SERVICE_FD) == 0) {
 		if (*procfdp > *sockp) {
@@ -416,15 +411,14 @@ service_clean(int *sockp, int *procfdp, uint64_t flags)
 				close(fd);
 		}
 		closefrom(maxfd + 1);
-			printf("service_clean return\n");
-
 	}
 }
+
+#define MAC_LOG
 
 void
 service_start(struct service *service, int sock, int procfd)
 {
-	// printf("# service_start: name %s\n", service->s_name);
 	struct service_connection *sconn, *sconntmp;
 	fd_set fds;
 	int maxfd, nfds;
@@ -434,10 +428,8 @@ service_start(struct service *service, int sock, int procfd)
 	setproctitle("%s", service->s_name);
 	service_clean(&sock, &procfd, service->s_flags);
 
-	if (service_connection_add(service, sock, NULL) == NULL) {
-		printf("servic_connection_add\n");
+	if (service_connection_add(service, sock, NULL) == NULL)
 		_exit(1);
-	}
 
 	/* Set label */
 	#include <sys/mac.h>
@@ -457,38 +449,38 @@ service_start(struct service *service, int sock, int procfd)
 	(void)sizeof(sig_t);
 	(void)sizeof(sig_atomic_t);
 
-	// openlog("syslog_proces", LOG_CONS | LOG_PID, LOG_DAEMON);
-	// syslog(LOG_NOTICE, "Start openlog");
+#ifdef MAC_LOG
+	openlog("syslog_proces", LOG_CONS | LOG_PID, LOG_DAEMON);
+	syslog(LOG_NOTICE, "[INFO] service_start()");
+#endif
 
-	if (modfind("CaspeMAC") != -1) {
+	if (modfind("CasperMAC") != -1) {
 		const char *label = NULL;
 
-		if (!strcmp("system.dns", service->s_name)) {
-			// syslog(LOG_NOTICE, "Set dns label");
+		if (!strcmp("system.dns", service->s_name))
 			label = "casper/dns";
-		}
-		else if (!strcmp("system.fileargs", service->s_name)) {
-			// syslog(LOG_NOTICE, "Set fileargs label");
+		else if (!strcmp("system.fileargs", service->s_name))
 			label = "casper/fileargs";
-		} else if (!strcmp("system.grp", service->s_name)) {
-			// syslog(LOG_NOTICE, "Set grp label");
+		else if (!strcmp("system.grp", service->s_name))
 			label = "casper/grp";
-		} else if (!strcmp("system.netdb", service->s_name)) {
-			// syslog(LOG_NOTICE, "Set netdb label");
+		else if (!strcmp("system.netdb", service->s_name))
 			label = "casper/netdb";
-		} else if (!strcmp("system.pwd", service->s_name)) {
-			// syslog(LOG_NOTICE, "Set pwd label");
+		else if (!strcmp("system.pwd", service->s_name))
 			label = "casper/pwd";
-		} else if (!strcmp("system.sysctl", service->s_name)) {
-			// syslog(LOG_NOTICE, "Set sysctl label");
+		else if (!strcmp("system.sysctl", service->s_name))
 			label = "casper/sysctl";
-		} else if (!strcmp("system.syslog", service->s_name)) {
+		else if (!strcmp("system.syslog", service->s_name))
 			label = "casper/syslog";
-		}
 		/* other service ... */
 
+#ifdef MAC_LOG
+		syslog(LOG_NOTICE, "current label = %s", label);
+#endif
+
 		if (label != NULL) {
-			// syslog(LOG_NOTICE, "Start set label");
+#ifdef MAC_LOG
+			syslog(LOG_NOTICE, "Start set label");
+#endif
 			mac_t mac_label;
 			if (mac_from_text(&mac_label, label) != 0)
 				exit(EXIT_FAILURE);
@@ -499,10 +491,14 @@ service_start(struct service *service, int sock, int procfd)
 			}
 
 			mac_free(mac_label);
+#ifdef MAC_LOG
+			syslog(LOG_NOTICE, "Finish set label");
+#endif
 		}
 	}
-
-	// closelog();
+#ifdef MAC_LOG
+	closelog();
+#endif
 
 	for (;;) {
 		FD_ZERO(&fds);
