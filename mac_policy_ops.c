@@ -906,7 +906,6 @@ casper_destroy(struct mac_policy_conf *mpc)
 	if (zone_casper != NULL) {
 		uma_zdestroy(zone_casper);
 		zone_casper = NULL;
-		printf("CasperMAC: Zone destroyed.\n");
 	}
 }
 
@@ -930,13 +929,11 @@ casper_vnode_init_label(struct label *label)
 {
 	struct mac_casper *c_label;
 
-	/* 1. 從 Zone 分配記憶體 */
 	c_label = uma_zalloc(zone_casper, M_WAITOK | M_ZERO);
+	if (c_label == NULL)
+		return;
 
-	/* 2. 設定預設值 (例如 SUB_NONE) */
 	c_label->type = SUB_NONE;
-
-	/* 3. 把記憶體掛載到 Slot 上 */
 	SLOT_SET(label, c_label);
 
 	return;
@@ -945,81 +942,52 @@ static int
 casper_mpo_vnode_check_relabel(struct ucred *cred, struct vnode *vp,
     struct label *vplabel, struct label *newlabel)
 {
-	printf("casper_mpo_vnode_check_relabel()\n");
 	return 0;
 }
 static void
 casper_mpo_vnode_relabel(struct ucred *cred, struct vnode *vp,
     struct label *vplabel, struct label *label)
 {
-	printf("casper_mpo_vnode_relabel() start\n");
 	struct mac_casper *src, *dst;
-
-	if (label == NULL) {
-		printf("src label is null\n");
-		return;
-	}
-	if (vplabel == NULL) {
-		printf("dst label is null\n");
-		return;
-	}
 
 	src = SLOT(label);
 	dst = SLOT(vplabel);
 
-	if (src == NULL) {
-		printf("src is null\n");
-	}
+	if (src == NULL)
+		return;
+
 	if (dst == NULL) {
-		printf("dst is null\n");
 
 		dst = uma_zalloc(zone_casper, M_NOWAIT | M_ZERO);
-		if (dst == NULL) {
-			printf("dst is null for zalloc\n");
+		if (dst == NULL)
 			return;
-		}
+
 		SLOT_SET(vplabel, dst);
 	}
 	dst->type = src->type;
-	printf("casper_mpo_vnode_relabel() done\n");
 }
 static void
 casper_mpo_vnode_copy_label(struct label *src, struct label *dest)
 {
-	printf("casper_mpo_vnode_copy_label() start\n");
-	if (src == NULL) {
-		printf("src label is NULL\n");
-		return;
-	} else if (dest == NULL) {
-		printf("dest label is NULL\n");
-		return;
-	}
-
 	struct mac_casper *s, *d;
 	s = SLOT(src);
 	d = SLOT(dest);
 
-	if (s == NULL || d == NULL) {
-		printf(
-		    "casper_mpo_vnode_copy_label() s == NULL or d == NULL\n");
+	if (s == NULL || d == NULL)
 		return;
-	}
 
 	*d = *s;
-	printf("casper_mpo_vnode_copy_label() done\n");
 }
 static int
 casper_mpo_vnode_check_setextattr(struct ucred *cred, struct vnode *vp,
     struct label *vplabel, int attrnamespace, const char *name)
 {
-	printf("casper_mpo_vnode_check_setextattr() with name %s\n", name);
 	return 0;
 }
 static int
 casper_mpo_vnode_setlabel_extattr(struct ucred *cred, struct vnode *vp,
     struct label *vplabel, struct label *intlabel)
 {
-	printf("casper_mpo_vnode_setlabel_extattr() start\n");
 	struct mac_casper *src;
 	size_t buflen;
 	int error;
@@ -1027,29 +995,11 @@ casper_mpo_vnode_setlabel_extattr(struct ucred *cred, struct vnode *vp,
 	src = SLOT(intlabel);
 	buflen = sizeof(struct mac_casper);
 
-	// 檢查 1: 確認 Label Slot 是否存在
-	if (src == NULL) {
-		printf(
-		    "casper_mpo_vnode_setlabel_extattr: Error - label slot is NULL\n");
-		// 通常回傳 EINVAL (Invalid Argument) 或 0 (忽略)
+	if (src == NULL)
 		return (EINVAL);
-	}
 
-	// 寫入硬碟
-	// 注意：原本你的程式碼寫 (char *)source，但變數宣告是 src，這裡已修正為
-	// src
 	error = vn_extattr_set(vp, IO_NODELOCKED, MAC_SUB_EXTATTR_NAMESPACE,
 	    MAC_SUB_EXTATTR_NAME, buflen, (char *)src, curthread);
-
-	// 檢查 2: 確認寫入是否成功
-	if (error != 0) {
-		// 如果 error 是 EOPNOTSUPP (45)，代表該檔案系統不支援 Extended
-		// Attributes 如果 error 是 EACCES (13) 或 EPERM
-		// (1)，代表權限不足
-		printf(
-		    "casper_mpo_vnode_setlabel_extattr: Failed to write extattr! error = %d\n",
-		    error);
-	}
 
 	return (error);
 }
@@ -1057,41 +1007,24 @@ static int
 casper_mpo_vnode_associate_extattr(struct mount *mp, struct label *mplabel,
     struct vnode *vp, struct label *vplabel)
 {
-	printf("casper_mpo_vnode_associate_extattr() start\n");
 	struct mac_casper *dest;
 	int error;
 	int len;
 
-	if (vplabel == NULL) {
-		printf("vplabel is NULL\n");
-		return 0;
-	}
-
-	// source = SLOT(mplabel);
 	dest = SLOT(vplabel);
 
-	// if (source == NULL) {
-	// 	printf("source is NULL\n");
-	// 	return 0;
-	// }
-
-	if (dest == NULL) {
-		printf("dest is NULL\n");
+	if (dest == NULL)
 		return 0;
-	}
 
-	/* 設定要讀取的大小：整個結構 */
 	len = sizeof(struct mac_casper);
 
-	/* 讀取磁碟上的二進位資料 */
 	error = vn_extattr_get(vp, IO_NODELOCKED, MAC_SUB_EXTATTR_NAMESPACE,
 	    MAC_SUB_EXTATTR_NAME, &len,
 	    (char *)dest, // 直接寫入結構指標
 	    curthread);
 
-	/* 4. Handle "File has no label" (The part you asked for) */
 	if (error == ENOATTR || error == EOPNOTSUPP) {
-		/* * The file on disk has no extended attribute.
+		/* The file on disk has no extended attribute.
 		 * We simply mark the memory label as NONE (Empty).
 		 * We return 0 (Success) so the OS lets the file load normally.
 		 */
@@ -1099,18 +1032,12 @@ casper_mpo_vnode_associate_extattr(struct mount *mp, struct label *mplabel,
 		return (0);
 	}
 
-	/* 5. Handle real errors (Disk corruption, I/O error) */
-	if (error) {
+	if (error)
 		return (error);
-	}
 
-	/* 6. Verify data size (If read was successful) */
-	if (len != sizeof(struct mac_casper)) {
+	if (len != sizeof(struct mac_casper))
 		/* Data on disk is wrong size? Treat as empty. */
-		printf("casper: bad label size, resetting to NONE\n");
 		dest->type = SUB_NONE;
-		return (0);
-	}
 
 	return (0);
 }
@@ -1118,7 +1045,6 @@ static int
 casper_mpo_vnode_internalize_label(struct label *label, char *element_name,
     char *element_data, int *claimed)
 {
-	printf("casper_mpo_internalize_label() start\n");
 	struct mac_casper *mpl;
 	enum cas_obj_label found_type = OBJ_NONE;
 
@@ -1141,7 +1067,6 @@ casper_mpo_vnode_internalize_label(struct label *label, char *element_name,
 	mpl = SLOT(label);
 
 	if (mpl == NULL) {
-		printf("casper_mpo_internalize_label() mpl is NULL\n");
 		mpl = uma_zalloc(zone_casper, M_NOWAIT | M_ZERO);
 
 		if (mpl == NULL)
@@ -1153,15 +1078,12 @@ casper_mpo_vnode_internalize_label(struct label *label, char *element_name,
 	mpl->type = found_type;
 	(*claimed)++;
 
-	printf("capser_mpo_internzlize_labe() done\n");
 	return (0);
 }
 static int
 casper_mpo_vnode_externalize_label(struct label *label, char *element_name,
     struct sbuf *sb, int *claimed)
 {
-	printf("casper_mpo_externalize_label() with element_name %s\n",
-	    element_name);
 	struct mac_casper *mpl;
 	const char *result_name = NULL;
 
@@ -1170,10 +1092,8 @@ casper_mpo_vnode_externalize_label(struct label *label, char *element_name,
 
 	mpl = SLOT(label);
 
-	if (mpl == NULL) {
-		printf("casper_mpo_externalize_label() mpo is NULL\n");
+	if (mpl == NULL)
 		return (0);
-	}
 
 	for (int i = 0; cas_obj_label_map[i].name != NULL; i++) {
 		if (cas_obj_label_map[i].type == mpl->type) {
@@ -1209,13 +1129,10 @@ casper_cred_relabel(struct ucred *cred, struct label *newlabel)
 	dst = SLOT(cred->cr_label);
 	src = SLOT(newlabel);
 
-	if (src == NULL) {
-		printf("casper_cred_relabel src is NULL");
+	if (src == NULL)
 		return;
-	}
 
 	if (dst == NULL) {
-		printf("casper_cred_relabel dst is NULL\n");
 		dst = uma_zalloc(zone_casper, M_NOWAIT | M_ZERO);
 		if (dst == NULL)
 			return;
@@ -1228,7 +1145,6 @@ static int
 casper_mpo_cred_internalize_label(struct label *label, char *element_name,
     char *element_data, int *claimed)
 {
-	printf("casper_mpo_internalize_label() start\n");
 	struct mac_casper *mpl;
 	enum cas_sub_label found_type = SUB_NONE;
 
@@ -1251,7 +1167,6 @@ casper_mpo_cred_internalize_label(struct label *label, char *element_name,
 	mpl = SLOT(label);
 
 	if (mpl == NULL) {
-		printf("casper_mpo_internalize_label() mpl is NULL\n");
 		mpl = uma_zalloc(zone_casper, M_NOWAIT | M_ZERO);
 
 		if (mpl == NULL)
@@ -1263,15 +1178,12 @@ casper_mpo_cred_internalize_label(struct label *label, char *element_name,
 	mpl->type = found_type;
 	(*claimed)++;
 
-	printf("capser_mpo_internzlize_labe() done\n");
 	return (0);
 }
 static int
 casper_mpo_cred_externalize_label(struct label *label, char *element_name,
     struct sbuf *sb, int *claimed)
 {
-	printf("casper_mpo_externalize_label() with element_name %s\n",
-	    element_name);
 	struct mac_casper *mpl;
 	const char *result_name = NULL;
 
@@ -1280,10 +1192,8 @@ casper_mpo_cred_externalize_label(struct label *label, char *element_name,
 
 	mpl = SLOT(label);
 
-	if (mpl == NULL) {
-		printf("casper_mpo_externalize_label() mpo is NULL\n");
+	if (mpl == NULL)
 		return (0);
-	}
 
 	for (int i = 0; cas_sub_label_map[i].name != NULL; i++) {
 		if (cas_sub_label_map[i].type == mpl->type) {
