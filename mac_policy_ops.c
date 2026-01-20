@@ -404,7 +404,7 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 		return casper_check_dst_ip(obj->type, sa);
 	else if (obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
 	    obj->type == SUB_NETDB || obj->type == SUB_PWD ||
-	    obj->type == SUB_SYSCTL == 0)
+	    obj->type == SUB_SYSCTL)
 		return (EACCES);
 
 	return (0);
@@ -417,7 +417,7 @@ casper_mpo_socket_check_create_t(struct ucred *cred, int domain, int type,
 	if (obj == NULL)
 		return (0);
 
-	if (obj->type == SUB_DNS == 0)
+	if (obj->type == SUB_DNS)
 		return (0);
 	else if (obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
 	    obj->type == SUB_NETDB || obj->type == SUB_PWD ||
@@ -822,22 +822,14 @@ casper_mpo_vnode_check_open(struct ucred *cred, struct vnode *vp,
 	struct mac_casper *subj, *obj;
 
 	subj = casper_get_label(cred);
-
 	if (subj == NULL)
 		return (0);
 
-	if (label == NULL)
-		return (EACCES);
-
 	obj = SLOT(label);
-
 	if (obj == NULL) // Casper label process can't read other file
 		return (EACCES);
 
-	if (subj->type == obj->type)
-		return (0);
-
-	return (EACCES);
+	return casper_check_allowed_open(subj, obj);
 }
 static int
 casper_mpo_vnode_check_create_t(struct ucred *cred, struct vnode *dvp,
@@ -1195,6 +1187,23 @@ casper_mpo_cred_externalize_label(struct label *label, char *element_name,
 	return (0);
 }
 
+/* DEBUG to print open file */
+static int
+casper_mpo_vnode_check_lookup(struct ucred *cred, struct vnode *dvp,
+    struct label *dlabel, struct componentname *cnp)
+{
+	struct mac_casper *subj = SLOT(cred->cr_label);
+
+	if (subj == NULL || subj->type == SUB_NONE)
+		return (0);
+
+	printf(
+	    "Casper Lookup: Subject=%d is looking for [%.*s] in dir_vnode=%p\n",
+	    subj->type, (int)cnp->cn_namelen, cnp->cn_nameptr, dvp);
+
+	return (0);
+}
+
 /* Base structure */
 static struct mac_policy_ops casper_mac_policy_ops = {
 	/* init */
@@ -1347,12 +1356,10 @@ static struct mac_policy_ops casper_mac_policy_ops = {
 	    casper_mpo_vnode_execve_will_transition_t,
 
 	/* vnode check */
-	// .mpo_vnode_check_lookup = ... // Allow lookup
+	// .mpo_vnode_check_lookup = casper_mpo_vnode_check_lookup, // Allow
 	// .mpo_vnode_check_readlink = ... // Allow readlink
-	/* TODO
-	.mpo_vnode_check_open = casper_mpo_vnode_check_open, Can only open
-	restrict files
-	*/
+	.mpo_vnode_check_open =
+	    casper_mpo_vnode_check_open, // Can only open restrict files
 	.mpo_vnode_check_read = casper_mpo_vnode_check_read_t,	   // Check
 	.mpo_vnode_check_stat = casper_mpo_vnode_check_stat_t,	   // Check
 	.mpo_vnode_check_create = casper_mpo_vnode_check_create_t, // Check
