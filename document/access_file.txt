@@ -1,0 +1,31 @@
+/* DNS */
+static const char *casper_dns_allowed_files_open[] = {
+	"/etc/nsswitch.conf", "/etc/hosts", "/etc/resolv.conf", "/etc/services"
+};
+
+/* NET */
+
+/* GRP */
+static const char *grp_allowed_files_open[] = {
+	"/etc/nsswitch.conf", "/etc/group", "/var/db/cache/group.cache",
+};
+
+/* NETDB */
+static const char *netdb_allowed_files_open[] = {
+	"/etc/nsswitch.conf", "/etc/protocols",
+};
+
+/* PWD */
+static const char *pwd_allowed_files_open[] = {
+	"/etc/nsswitch.conf", "/etc/pwd.db", "/etc/spwd.db",
+};
+
+/* SYSCTL */
+static const char *sysctl_allowed_files_open[] = {
+	"/etc/pwd.db",
+};
+
+/* SYSLOG */
+static const char *syslog_allowed_files_open[] = {
+	"/var/run/log", "/var/run/logpriv", "/etc/localtime", "/etc/pwd.db", "/dev/console"
+};
