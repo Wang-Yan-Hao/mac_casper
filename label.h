@@ -100,7 +100,7 @@ static const struct obj_file_map obj_file_map[] = {
 	{ "/etc/localtime", OBJ_SYS_TIME },
 
 	{ "/var/run/log", OBJ_SYS_LOG }, { "/dev/console", OBJ_SYS_LOG },
-	{ "/var/run/logpriv", OBJ_SYS_LOG}
+	{ "/var/run/logpriv", OBJ_SYS_LOG },
 
 	{ NULL, OBJ_NONE } /* Sentinel */
 };
