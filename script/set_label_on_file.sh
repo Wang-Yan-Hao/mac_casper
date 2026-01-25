@@ -53,5 +53,6 @@ apply_label "pwd_shadow"    "/etc/spwd.db"
 apply_label "sys_time"      "/etc/localtime"
 apply_label "sys_log"       "/var/run/log"
 apply_label "sys_log"       "/dev/console"
+apply_label "sys_log"       "/var/run/logpriv"
 
 echo "Done."
