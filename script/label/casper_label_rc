@@ -1,0 +1,69 @@
+#!/bin/sh
+
+# ==========================================================
+# FreeBSD RC System Keywords
+# ==========================================================
+# PROVIDE: casper_label
+# REQUIRE: syslogd
+# KEYWORD: nojail
+
+. /etc/rc.subr
+
+name="casper_label"
+rcvar="casper_label_enable"
+start_cmd="casper_label_start"
+
+# ==========================================================
+# 你的核心邏輯函數
+# ==========================================================
+apply_label() {
+    LABEL_NAME="$1"
+    FILE_PATH="$2"
+
+    if [ -e "$FILE_PATH" ]; then
+        echo "Setting casper/${LABEL_NAME} on ${FILE_PATH}"
+        /usr/sbin/setfmac "casper/${LABEL_NAME}" "$FILE_PATH"
+    else
+        echo "Skipping ${FILE_PATH} (File not found)"
+    fi
+}
+
+casper_label_start()
+{
+    echo "Casper MAC: Applying labels to system files..."
+
+    # --- NSS Config ---
+    apply_label "nss_config"    "/etc/nsswitch.conf"
+
+    # --- DNS Service ---
+    apply_label "net_resolve"   "/etc/hosts"
+    apply_label "net_resolve"   "/etc/resolv.conf"
+
+    # --- NETDB Service ---
+    apply_label "net_services"  "/etc/services"
+    apply_label "net_protocols" "/etc/protocols"
+
+    # --- GRP Service ---
+    apply_label "group_db"      "/etc/group"
+    apply_label "group_db"      "/var/db/cache/group.cache"
+
+    # --- PWD Service ---
+    apply_label "pwd_public"    "/etc/pwd.db"
+    apply_label "pwd_shadow"    "/etc/spwd.db"
+
+    # --- SYSLOG / Time ---
+    apply_label "sys_time"      "/etc/localtime"
+
+    # 這裡是最關鍵的 socket 標記，因為有 REQUIRE: syslogd，所以這些檔案一定存在
+    apply_label "sys_log"       "/var/run/log"
+    apply_label "sys_log"       "/var/run/logpriv"
+    apply_label "sys_log"       "/dev/console"
+
+    echo "Casper MAC: Done."
+}
+
+# ==========================================================
+# 載入 RC 設定並執行
+# ==========================================================
+load_rc_config $name
+run_rc_command "$1"

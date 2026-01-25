@@ -38,7 +38,21 @@ set `/etc/loader.conf` to do this.
 ### Label Script
 
 We write a script to label the files casper will use, you can run
-it with `sh script/set_label_on_file.sh`.
+it with `sh script/label/set_label_on_file.sh`.
+
+While you can manually run sh script/label/set_label_on_file.sh, we
+strongly recommend setting up the rc.d service.
+
+```sh
+# 1. Link the script to the system service directory
+sudo ln -s $(realpath script/label/casper_label_rc) /usr/local/etc/rc.d/casper_label
+
+# 2. Enable the service in /etc/rc.conf
+sudo sysrc casper_label_enable="YES"
+
+# 3. Start the service immediately (no need to reboot yet)
+sudo service casper_label start
+```
 
 ### Test
 
