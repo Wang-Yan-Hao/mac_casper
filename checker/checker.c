@@ -20,166 +20,98 @@
 #include "../mac_policy_ops.h"
 #include "checker.h"
 
-/*
- * "/etc/resolv.conf" parser is implement in userspace
- * library res_init() function. We implment a kernel
- * version parser like how res_init() parse.
- */
-static char *
-casper_get_nameserver(char *line)
+struct casper_dns_cache dns_cache;
+
+/* DNS Checker */
+
+void
+casper_dns_init(void)
 {
-	if (strncmp(line, "nameserver", 10) == 0) {
-		char *line_start;
-
-		line_start = line + sizeof("nameserver") - 1;
-		while (*line_start == ' ' || *line_start == '\t')
-			line_start++;
-
-		line_start[strcspn(line_start, ";# \t\n")] = '\0';
-		if ((*line_start != '\0') && (*line_start != '\n'))
-			return line_start;
-	}
-
-	return NULL;
+	rm_init(&dns_cache.lock, "casper_dns_lock");
+	dns_cache.count = 0;
 }
 
-static bool
-nameserver_match(char *line, struct sockaddr *sa, bool *pass, int *nserv)
+void
+casper_dns_destroy(void)
 {
-	char *ip = casper_get_nameserver(line);
-	if (!ip || *nserv >= MAXNS)
-		return false;
-
-	// TODO add cache for three nameserver
-	// May use time to check wheather the file
-	// change
-	if (sa->sa_family == AF_INET) { // AF_INET
-		struct in_addr found_ip4,
-		    ipv4_exp_addr = ((struct sockaddr_in *)sa)->sin_addr;
-
-		if (inet_pton(AF_INET, ip, &found_ip4) == 1 &&
-		    found_ip4.s_addr == ipv4_exp_addr.s_addr)
-			*pass = true;
-
-	} else { // AF_INET6
-		struct in6_addr found_ip6,
-		    ipv6_exp_addr = ((struct sockaddr_in6 *)sa)->sin6_addr;
-
-		if (inet_pton(AF_INET6, ip, &found_ip6) == 1 &&
-		    memcmp(&found_ip6, &ipv6_exp_addr,
-			sizeof(struct in6_addr)) == 0)
-			*pass = true;
-	}
-
-	(*nserv)++;
-	return false;
+	rm_destroy(&dns_cache.lock);
 }
 
-/* DNS checker */
 int
 casper_check_dst_ip(const int type, struct sockaddr *sa)
 {
-	char *check_filepath, *buf, *line_start, *newline;
-	int error = 0, nserv = 0, read_once = 0;
-	bool pass = false;
-	struct nameidata nd;
-	struct vnode *vp;
-	struct uio auio;
-	struct iovec aiov;
-	off_t offset = 0;
-	size_t bytes_read = 0;
+	printf("casper_check_dst_ip() start\n");
+	struct rm_priotracker tracker;
+	struct sockaddr *cached_sa;
+	struct sockaddr_in *dst_in, *cached_in;
+	struct sockaddr_in6 *dst_in6, *cached_in6;
+	int i, error = EACCES;
 
-	if (!(type > 0 && type < SUB_LABEL_LEN) || sa == NULL)
+	if (sa == NULL)
 		return (EINVAL);
 
-	// Assign check file
-	if (type == SUB_DNS)
-		check_filepath = "/etc/resolv.conf";
-	else
-		return (ENOTSUP);
+	if (type != SUB_DNS)
+		return (0);
 
-	// Get connect dst ip
-	if (sa->sa_family != AF_INET && sa->sa_family != AF_INET6)
-		return (EAFNOSUPPORT);
+	rm_rlock(&dns_cache.lock, &tracker);
 
-	// Get vnode of the check file path
-	NDINIT(&nd, LOOKUP, FOLLOW | LOCKLEAF, UIO_SYSSPACE, check_filepath);
-
-	error = namei(&nd);
-	if (error)
-		return error;
-	vp = nd.ni_vp;
-
-	if (vp->v_type != VREG) {
-		vput(vp);
-		NDFREE_PNBUF(&nd);
-		return (EINVAL);
+	if (dns_cache.count == 0) {
+		rm_runlock(&dns_cache.lock, &tracker);
+		return (EACCES);
 	}
 
-	buf = (char *)malloc(BUF_SIZE, M_TEMP, M_WAITOK | M_ZERO);
-	if (!buf)
-		return (ENOMEM);
-
-	/*
-	 * Userspace "/etc/resolv.conf" parser use fgets to
-	 * parse. Here we implement a kernel version fgets.
-	 */
-	read_once = BUF_SIZE - 1; // leave space for \0
-	while (1) {
-		aiov.iov_base = buf;
-		aiov.iov_len = read_once;
-
-		auio.uio_iov = &aiov;
-		auio.uio_iovcnt = 1;
-		auio.uio_offset = offset;
-		auio.uio_resid = read_once;
-		auio.uio_segflg = UIO_SYSSPACE;
-		auio.uio_rw = UIO_READ;
-		auio.uio_td = curthread;
-
-		// Clean buffer
-		memset(buf, 0, BUF_SIZE);
-
-		// Non-blocking
-		error = VOP_READ(vp, &auio, IO_NODELOCKED | IO_UNIT,
-		    curthread->td_ucred);
-		if (error) {
-			vput(vp);
-			NDFREE_PNBUF(&nd);
-			free(buf, M_TEMP);
-			return error;
-		}
-
-		if (auio.uio_resid == read_once) // EOF
-			break;
-
-		bytes_read = read_once - auio.uio_resid;
-		offset += bytes_read;
-		buf[bytes_read] = '\0'; // Append '\0'
-
-		line_start = buf;
-		while (
-		    (newline = memchr(line_start, '\n', bytes_read)) != NULL) {
-			*newline = '\0';
-			if (nameserver_match(line_start, sa, &pass, &nserv))
-				goto done;
-			line_start = newline + 1;
-		}
-
-		if (line_start == buf) {
-			if (nameserver_match(line_start, sa, &pass, &nserv))
-				goto done;
-		} else
-			offset -= (bytes_read - (line_start - buf));
+	/* 3. 印出當前正在連線的 IP (Incoming) */
+	if (sa->sa_family == AF_INET) {
+		dst_in = (struct sockaddr_in *)sa;
+		printf("Casper Check: Incoming IPv4 (Raw Hex): 0x%08x\n",
+			   ntohl(dst_in->sin_addr.s_addr));
+	} else if (sa->sa_family == AF_INET6) {
+		printf("Casper Check: Incoming is IPv6\n");
+	} else {
+		printf("Casper Check: Incoming Unknown Family: %d\n", sa->sa_family);
 	}
-done:
-	vput(vp);
-	NDFREE_PNBUF(&nd);
-	free(buf, M_TEMP);
-	return (pass ? 0 : EACCES);
+
+	for (i = 0; i < dns_cache.count; i++) {
+		cached_sa = (struct sockaddr *)&dns_cache.ns[i];
+
+		if (sa->sa_family != cached_sa->sa_family)
+			continue;
+
+		if (sa->sa_family == AF_INET) {
+			dst_in = (struct sockaddr_in *)sa;
+			cached_in = (struct sockaddr_in *)cached_sa;
+
+			/* 把兩個數值都印出來，一看就知道為什麼不相等 */
+			printf("  [%d] Compare: 0x%08x (Dest) vs 0x%08x (Cache)\n",
+				   i, ntohl(dst_in->sin_addr.s_addr), ntohl(cached_in->sin_addr.s_addr));
+
+			if (dst_in->sin_addr.s_addr == cached_in->sin_addr.s_addr) {
+				error = 0; /* Match! */
+				break;
+			}
+		}
+		else if (sa->sa_family == AF_INET6) {
+			dst_in6 = (struct sockaddr_in6 *)sa;
+			cached_in6 = (struct sockaddr_in6 *)cached_sa;
+
+			if (IN6_ARE_ADDR_EQUAL(&dst_in6->sin6_addr,
+				&cached_in6->sin6_addr)) {
+				error = 0; /* Match! */
+				break;
+			}
+			printf("  [%d] IPv6 mismatch\n", i);
+		}
+	}
+
+	printf("casper_check_dst_ip() done, error is %d\n", error);
+
+	rm_runlock(&dns_cache.lock, &tracker);
+
+	return (error);
 }
 
-/* Check open files in white list */
+/* Open Checker */
+
 int
 casper_check_allowed_open(struct mac_casper *subj, struct mac_casper *obj)
 {

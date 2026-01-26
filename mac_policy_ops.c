@@ -12,6 +12,7 @@
 #include <sys/namei.h>
 #include <sys/proc.h>
 #include <sys/protosw.h>
+#include <sys/priv.h>
 #include <sys/sbuf.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
@@ -888,6 +889,8 @@ casper_init(struct mac_policy_conf *conf)
 	    NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
 	if (zone_casper == NULL)
 		return;
+
+	casper_dns_init();
 }
 static void
 casper_destroy(struct mac_policy_conf *mpc)
@@ -896,6 +899,8 @@ casper_destroy(struct mac_policy_conf *mpc)
 		uma_zdestroy(zone_casper);
 		zone_casper = NULL;
 	}
+
+	casper_dns_destroy();
 }
 
 /* Common label function */
@@ -1204,6 +1209,50 @@ casper_mpo_vnode_check_lookup(struct ucred *cred, struct vnode *dvp,
 	return (0);
 }
 
+static int
+casper_mpo_syscall(struct thread *td, int call, void *arg)
+{
+	struct casper_dns_update_args k_args;
+	int error;
+
+	if (call != CASPER_CMD_SET_DNS)
+		return (ENOTSUP);
+
+	error = priv_check(td, PRIV_NET_ROUTE);
+	if (error)
+		return (error);
+
+	error = copyin(arg, &k_args, sizeof(k_args));
+	if (error)
+		return (error);
+
+	if (k_args.count < 0 || k_args.count > CASPER_MAXNS)
+		return (EINVAL);
+
+	/* Update the Cache (Write Lock) */
+	rm_wlock(&dns_cache.lock);
+
+	dns_cache.count = k_args.count;
+
+	memset(dns_cache.ns, 0, sizeof(dns_cache.ns));
+
+	for (int i = 0; i < k_args.count; i++) {
+		// Basic sanity check on family
+		if (k_args.ns[i].ss_family != AF_INET &&
+			k_args.ns[i].ss_family != AF_INET6) {
+			rm_wunlock(&dns_cache.lock);
+			return (EINVAL);
+		}
+
+		memcpy(&dns_cache.ns[i], &k_args.ns[i], sizeof(struct sockaddr_storage));
+	}
+
+	rm_wunlock(&dns_cache.lock);
+
+	printf("Casper MAC: Updated DNS Cache with %d servers.\n", k_args.count);
+	return (0);
+}
+
 /* Base structure */
 static struct mac_policy_ops casper_mac_policy_ops = {
 	/* init */
@@ -1384,9 +1433,11 @@ static struct mac_policy_ops casper_mac_policy_ops = {
 	.mpo_cred_destroy_label = casper_destroy_label, // Free the tag memory
 	.mpo_cred_relabel = casper_cred_relabel, // Copy tag and allocate memory
 	.mpo_cred_internalize_label =
-	    casper_mpo_cred_internalize_label, // Resolve tag name and allocate
-					       // memory
+	    casper_mpo_cred_internalize_label, // Resolve name and allocate memory
 	.mpo_cred_externalize_label = casper_mpo_cred_externalize_label,
+
+	/* Custom syscall */
+	.mpo_syscall = casper_mpo_syscall
 };
 
 /* Register */

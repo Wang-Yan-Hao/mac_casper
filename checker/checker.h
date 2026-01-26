@@ -1,15 +1,46 @@
 #ifndef CASPER_CHECKER_H
 #define CASPER_CHECKER_H
 
+#include <sys/rmlock.h>
+
 #include "../label.h"
 #include "../mac_policy_ops.h"
 
-/* DNS checker */
 #define BUF_SIZE 1024 // Read in chunks
 #define MAXNS	 3    // Limit how many nameservers we parse
 
+extern struct casper_dns_cache dns_cache;
+
+/* DNS Checker Cache */
+
+#define CASPER_MAXNS 3
+#define CASPER_CMD_SET_DNS 1
+
+void casper_dns_init(void);
+void casper_dns_destroy(void);
 int casper_check_dst_ip(const int type, struct sockaddr *sa);
+
+/* Open Checker */
+
 int casper_check_allowed_open(struct mac_casper *subj, struct mac_casper *obj);
+
+
+/* ==========================================================
+ * DNS Checker Cache
+ * ========================================================== */
+
+/* Structure passed from Userspace */
+struct casper_dns_update_args {
+	int count;
+	struct sockaddr_storage ns[CASPER_MAXNS];
+};
+
+/* Global Cache in Kernel */
+struct casper_dns_cache {
+	int count;
+	struct sockaddr_storage ns[CASPER_MAXNS];
+	struct rmlock lock;
+};
 
 /* ==========================================================
  * Policy Map
