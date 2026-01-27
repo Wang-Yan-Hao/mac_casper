@@ -11,37 +11,45 @@ We propose a sandboxing mechanism for Casper based on Mandatory
 Access Control (MAC), which mitigates the risks of privilege
 escalation, unauthorized network access, and data tampering.
 
-## Build and Rsun
+## Install
 
-### Build
+### Prerequisites
 
-To build the project and load the module:
+Before installing the module, ensure your file system supports MAC Multilabel.
+This is required for persistent label storage.
+
+Check status:
 
 ```sh
-sudo make all # Build the project
-sh script/unload_load.sh # Reload the kernel module
+# Option 1: Check running system (Recommended)
+mount | grep " / "
+# Look for "multilabel" in the parentheses.
+
+# Option 2: Check filesystem superblock
+# (Replace /dev/da0p2 with your actual root device)
+tunefs -p /dev/da0p2 | grep "MAC multilabel"
+# Expected: MAC multilabel: (-l)
 ```
 
-### Install
+### Build and Install
 
-To install the service into the FreeBSD Casper library:
+To compile the kernel module and install it to the system:
 
 ```sh
-cp casper_src/service.c /usr/src/lib/libcasper/libcasper/service.c
-cd /usr/src/lib/libcasper/libcasper
+# Compile and install the module into
 sudo make all install
 ```
 
-You need to load if while boot (for set label on vnode). You can
-set `/etc/loader.conf` to do this.
+To load the module automatically at system boot, edit the loader configuration:
 
-### Label Script
+Open `/boot/loader.conf` and add `mac_casper_load="YES"` to the end of file.
 
-We write a script to label the files casper will use, you can run
-it with `sh script/label/set_label_on_file.sh`.
+### Label Setup
 
-While you can manually run sh script/label/set_label_on_file.sh, we
-strongly recommend setting up the rc.d service.
+The MAC module relies on file labels to enforce security policies.
+You must apply these labels to the relevant system files.
+
+Set up the `rc.d` service. This ensures labels are correctly applied on every boot.
 
 ```sh
 # 1. Link the script to the system service directory
@@ -54,7 +62,7 @@ sudo sysrc casper_label_enable="YES"
 sudo service casper_label start
 ```
 
-### Test
+## Test
 
 All test code is located under the `test_program` folder.
 Each Casper service has its own folder containing demo programs.
