@@ -22,13 +22,19 @@ Check status:
 
 ```sh
 # Option 1: Check running system (Recommended)
-mount | grep " / "
+mount | grep "/"
 # Look for "multilabel" in the parentheses.
 
 # Option 2: Check filesystem superblock
-# (Replace /dev/da0p2 with your actual root device)
-tunefs -p /dev/da0p2 | grep "MAC multilabel"
+# (Replace /dev/gpt/rootfs your actual root device)
+tunefs -p /dev/gpt/rootfs | grep "MAC multilabel"
 # Expected: MAC multilabel: (-l)
+```
+
+If multilabel is not present, boot into Single User Mode and run:
+
+```sh
+tunefs -l enable /
 ```
 
 ### Build and Install
@@ -36,13 +42,16 @@ tunefs -p /dev/da0p2 | grep "MAC multilabel"
 To compile the kernel module and install it to the system:
 
 ```sh
-# Compile and install the module into
+# Compile and install the module into /boot/modules
 sudo make all install
 ```
 
-To load the module automatically at system boot, edit the loader configuration:
+To load the module automatically at system boot:
 
-Open `/boot/loader.conf` and add `mac_casper_load="YES"` to the end of file.
+```sh
+# This adds mac_casper_load="YES" to /boot/loader.conf
+sudo sysrc -f /boot/loader.conf mac_casper_load="YES"
+```
 
 ### Label Setup
 
@@ -52,14 +61,24 @@ You must apply these labels to the relevant system files.
 Set up the `rc.d` service. This ensures labels are correctly applied on every boot.
 
 ```sh
-# 1. Link the script to the system service directory
-sudo ln -s $(realpath script/label/casper_label_rc) /usr/local/etc/rc.d/casper_label
+# -m 755: Sets mode to rwxr-xr-x (Read/Write/Execute for Owner, Read/Execute for others)
+sudo install -m 755 script/label/casper_label_rc /usr/local/etc/rc.d/casper_label
 
 # 2. Enable the service in /etc/rc.conf
 sudo sysrc casper_label_enable="YES"
 
 # 3. Start the service immediately (no need to reboot yet)
 sudo service casper_label start
+```
+
+You need to register the casper label name in the system configuration. Open `/etc/mac.conf`
+and append `,?casper` to the default_labels line:
+
+```sh
+# Edit /etc/mac.conf
+# Look for the 'default_labels file' line and add ',?casper' to the end.
+
+default_labels file ?biba,?lomac,?mls,?sebsd,?casper
 ```
 
 ## Test
