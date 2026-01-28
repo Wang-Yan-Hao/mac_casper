@@ -8,7 +8,6 @@
 #define BUF_SIZE 1024 // Read in chunks
 #define MAXNS	 3    // Limit how many nameservers we parse
 
-int casper_check_dst_ip(const int type, struct sockaddr *sa);
 int casper_check_allowed_open(struct mac_casper *subj, struct mac_casper *obj);
 
 /* ==========================================================

@@ -400,9 +400,7 @@ casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
 	if (obj == NULL)
 		return (0);
 
-	if (obj->type == SUB_DNS)
-		return casper_check_dst_ip(obj->type, sa);
-	else if (obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
+	if (obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
 	    obj->type == SUB_NETDB || obj->type == SUB_PWD ||
 	    obj->type == SUB_SYSCTL)
 		return (EACCES);
