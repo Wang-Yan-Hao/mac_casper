@@ -58,3 +58,6 @@ casper_sysctl_perf
 # SYSLOG
 casper_syslog_demo
 casper_syslog_perf
+
+# Effective evaluation
+casper_main
