@@ -1,0 +1,17 @@
+{
+  "functions": [
+    "cap_getaddrinfo",
+    "cap_getnameinfo",
+    "cap_gethostbyname",
+    "cap_gethostbyname2",
+    "cap_gethostbyaddr"
+  ],
+  "arm64": {
+    "baseline": [2356, 4680, 4474, 4490, 4389],
+    "with_mac": [2311, 4500, 4348, 4344, 4259]
+  },
+  "amd64": {
+    "baseline": [13784, 24831, 25045, 24534, 23957],
+    "with_mac": [13435, 24644, 24544, 24520, 23933]
+  }
+}
