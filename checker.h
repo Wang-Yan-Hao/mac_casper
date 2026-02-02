@@ -1,8 +1,8 @@
 #ifndef CASPER_CHECKER_H
 #define CASPER_CHECKER_H
 
-#include "../label.h"
-#include "../mac_casper.h"
+#include "label.h"
+#include "mac_casper.h"
 
 /* DNS checker */
 #define BUF_SIZE 1024 // Read in chunks

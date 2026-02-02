@@ -13,9 +13,9 @@
 #include <sys/socketvar.h>
 #include <sys/vnode.h>
 
-#include "../label.h"
-#include "../mac_casper.h"
 #include "checker.h"
+#include "label.h"
+#include "mac_casper.h"
 
 /* Check open files in white list */
 int

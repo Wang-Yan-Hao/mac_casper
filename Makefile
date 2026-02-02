@@ -2,8 +2,10 @@
 
 KMOD=   mac_casper
 SRCS=   mac_casper.c
-SRCS+=	checker/checker.c
-SRCS+=	vnode_if.h
+SRCS+=	mac_casper.h
+SRCS+=	checker.c
+SRCS+=	checker.h
 SRCS+=  label.h
+SRCS+=	vnode_if.h
 
 .include <bsd.kmod.mk>

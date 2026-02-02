@@ -28,7 +28,7 @@
 #include <security/mac/mac_policy.h>
 #include <security/mac/mac_syscalls.h>
 
-#include "checker/checker.h"
+#include "checker.h"
 #include "label.h"
 #include "mac_casper.h"
 
