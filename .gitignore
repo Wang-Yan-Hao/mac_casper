@@ -61,3 +61,13 @@ casper_syslog_perf
 
 # Effective evaluation
 casper_main
+
+# Syscall test
+perf_baseline
+perf_dns
+perf_grp
+perf_netdb
+perf_syslog
+perf_sysctl
+perf_pwd
+perf_fileargs

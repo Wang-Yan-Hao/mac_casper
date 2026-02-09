@@ -1254,6 +1254,8 @@ static struct mac_policy_ops casper_mac_policy_ops = {
 	.mpo_pipe_check_read = casper_mpo_pipe_check_read_t,
 	.mpo_pipe_check_relabel = casper_mpo_pipe_check_relabel_t,
 	.mpo_pipe_check_stat = casper_mpo_pipe_check_stat_t,
+	// If run syscall test, it sholud be comment to let
+	// python get the output
 	.mpo_pipe_check_write = casper_mpo_pipe_check_write_t,
 	/* posixsem */
 	.mpo_posixsem_check_getvalue = casper_mpo_posixsem_check_getvalue_t,
