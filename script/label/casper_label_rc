@@ -12,6 +12,7 @@
 name="casper_label"
 rcvar="casper_label_enable"
 start_cmd="casper_label_start"
+rc_info="YES"
 
 # ==========================================================
 # 你的核心邏輯函數
@@ -31,6 +32,7 @@ apply_label() {
 casper_label_start()
 {
     echo "Casper MAC: Applying labels to system files..."
+    logger -t "casper_label" "Casper MAC: Applying labels to system files..."
 
     # --- NSS Config ---
     apply_label "nss_config"    "/etc/nsswitch.conf"
