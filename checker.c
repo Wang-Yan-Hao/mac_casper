@@ -36,25 +36,33 @@ casper_check_allowed_open(struct mac_casper *subj, struct mac_casper *obj)
 	    subj_type == SUB_FILEARGS)
 		return (0);
 
+#ifdef DEBUG
 	printf("casper_check_allowed_open(): subj_type %d, obj_type %d\n",
 	    subj_type, obj_type);
+#endif
 
 	for (rule = casper_open_map; rule->subj != SUB_NONE; rule++) {
 		if (rule->subj == subj_type) {
 			for (ptr = rule->allowed_list; *ptr != OBJ_NONE;
 			    ptr++) {
 				if (*ptr == obj_type) {
+#ifdef DEBUG
 					printf(
 					    "casper_check_allowed_open() return 0\n");
+#endif
 					return (0);
 				}
 			}
 
+#ifdef DEBUG
 			printf("casper_check_allowed_open() return EACCESS\n");
+#endif
 			return (EACCES);
 		}
 	}
 
+#ifdef DEBUG
 	printf("casper_check_allowed_open() return EACCESS\n");
+#endif
 	return (EACCES);
 }
