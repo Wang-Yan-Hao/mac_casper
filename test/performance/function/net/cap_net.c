@@ -18,10 +18,10 @@
 #include <casper/cap_net.h>
 
 #if defined(__aarch64__)
-    #define ITER_BIND 100000
+    #define ITER_BIND 10000
 	#define ITER_CONNECT 250
 #elif defined(__amd64__)
-    #define ITER_BIND 100000
+    #define ITER_BIND 70000
 	#define ITER_CONNECT 250
 #else
     #define ITER_BIND 1
