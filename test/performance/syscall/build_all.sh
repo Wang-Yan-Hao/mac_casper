@@ -39,10 +39,10 @@ for d in $DIRS; do
     if [ -d "$d" ]; then
         if [ "$MODE" = "arm" ]; then
             case "$d" in
-                "sysctl") ITER=400000 ;;
-                "open")   ITER=200000 ;;
-                "socket") ITER=400000 ;;
-                *)        ITER=1      ;;
+                "sysctl") ITER=1600000 ;;
+                "open")   ITER=400000  ;;
+                "socket") ITER=200000  ;;
+                *)        ITER=1       ;;
             esac
         else
             case "$d" in
