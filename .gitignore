@@ -36,6 +36,7 @@ dns_qps
 
 # NET
 cap_net
+perf_net
 
 # FILEARGS
 fileargs_demo
