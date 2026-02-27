@@ -16,7 +16,7 @@ def plot_single_arch(arch_name, data):
     with_method_list = data[arch_name]["with_method"]
     c_iterations = data[arch_name]["c_iterations"]
 
-    fig, axes_flat = plt.subplots(4, 2, figsize=(14, 16))
+    fig, axes_flat = plt.subplots(4, 2, figsize=(16, 18))
     axes = axes_flat.flatten()
 
     max_n = max(len(f) for f in functions_list)
@@ -33,7 +33,7 @@ def plot_single_arch(arch_name, data):
 
         ax.barh(y + height / 2, base_vals, height, label="Baseline", color="steelblue")
         ax.barh(
-            y - height / 2, with_vals, height, label="With Method", color="darkorange"
+            y - height / 2, with_vals, height, label="With MAC", color="darkorange"
         )
 
         for j in range(n):
@@ -44,14 +44,14 @@ def plot_single_arch(arch_name, data):
                 f"+{overhead:.1f}%",
                 ha="left",
                 va="center",
-                fontsize=10,
+                fontsize=16,
                 color="darkred",
                 fontweight="bold",
             )
 
-        ax.set_title(services[i], fontsize=14, fontweight="bold")
+        ax.set_title(services[i], fontsize=18, fontweight="bold")
         ax.set_yticks(y)
-        ax.set_yticklabels(functions, fontsize=11)
+        ax.set_yticklabels(functions, fontsize=17)
         ax.invert_yaxis()
 
         diff = max_n - n
@@ -62,12 +62,12 @@ def plot_single_arch(arch_name, data):
         iter_text = f"C: {c_iterations[i]}\nPython: {py_iterations[i]}"
         ax.text(
             0.98,
-            1.12,
+            1.18,
             iter_text,
             transform=ax.transAxes,
             ha="right",
             va="top",
-            fontsize=10,
+            fontsize=16,
             color="black",
             bbox=dict(
                 boxstyle="round,pad=0.2",
@@ -82,7 +82,7 @@ def plot_single_arch(arch_name, data):
 
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(
-        handles, labels, loc="upper right", bbox_to_anchor=(1, 1.015), fontsize=12
+        handles, labels, loc="upper right", bbox_to_anchor=(1, 1.015), fontsize=15
     )
 
     fig.text(
@@ -90,7 +90,7 @@ def plot_single_arch(arch_name, data):
         0.01,
         "x-axis: Time (second), y-axis: Function names.\nPercentages indicate overhead compared to Baseline.",
         ha="center",
-        fontsize=14,
+        fontsize=18,
         fontweight="bold",
         style="italic",
         bbox=dict(facecolor="none", edgecolor="black", pad=5.0),
