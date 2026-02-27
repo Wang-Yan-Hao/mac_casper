@@ -15,10 +15,14 @@ arm_with = data["arm64"]["with_mac"]
 amd_base = data["amd64"]["baseline"]
 amd_with = data["amd64"]["with_mac"]
 
+all_vals = arm_base + arm_with + amd_base + amd_with
+max_val = max(all_vals)
+
 x = np.arange(len(functions))
-width = 0.2
+width = 0.22
 
 fig, ax = plt.subplots(figsize=(14, 7))
+ax.set_ylim(0, max_val * 1.1)
 
 bars1 = ax.bar(
     x - 1.5 * width,
@@ -49,8 +53,8 @@ bars4 = ax.bar(
 )
 
 ax.set_xticks(x)
-ax.set_xticklabels(functions, ha="center", fontsize=15)
-ax.set_ylabel("Queries Per Second (QPS)", fontsize=16, fontweight="bold")
+ax.set_xticklabels(functions, ha="center", fontsize=16)
+ax.set_ylabel("Queries Per Second (QPS)", fontsize=17, fontweight="bold")
 
 
 def autolabel(rects):
@@ -59,18 +63,19 @@ def autolabel(rects):
         ax.annotate(
             f"{height}",
             xy=(rect.get_x() + rect.get_width() / 2, height),
-            xytext=(0, 3),
+            xytext=(0, 5),
             textcoords="offset points",
             ha="center",
             va="bottom",
-            fontsize=10,
+            fontsize=15,
+            rotation=25
         )
 
 
 for b in [bars1, bars2, bars3, bars4]:
     autolabel(b)
 
-ax.legend(loc="upper left", fontsize=15, frameon=True, shadow=True)
+ax.legend(loc="upper left", fontsize=17, frameon=True, shadow=True)
 ax.grid(axis="y", linestyle="--", alpha=0.6)
 
 plt.tight_layout()
