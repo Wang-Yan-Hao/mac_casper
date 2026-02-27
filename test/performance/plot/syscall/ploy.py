@@ -17,7 +17,7 @@ def plot_performance(json_file):
     ops = ['open', 'socket', 'sysctl']
     op_titles = ['open("/etc/hosts") + close()', 'socket(AF_INET) + close()', 'sysctl']
 
-    fig, axes = plt.subplots(3, 2, figsize=(16, 19))
+    fig, axes = plt.subplots(3, 2, figsize=(18, 22))
 
     for row, op in enumerate(ops):
         for col, arch in enumerate(archs):
@@ -26,25 +26,24 @@ def plot_performance(json_file):
             labels = arch_data['labels']
             values = arch_data[op]
 
-            color_map = matplotlib.colormaps['tab10']
             bars = ax.bar(labels, values, edgecolor='black', alpha=0.85)
 
             ax.set_ylim(0, max(values) * 1.2)
 
-            ax.set_title(f"{arch.upper()} - {op_titles[row]}", fontsize=16, fontweight='bold')
-            ax.set_ylabel("Latency (seconds)", fontsize=13)
-            ax.tick_params(axis='x', labelsize=13)
+            ax.set_title(f"{arch.upper()} - {op_titles[row]}", fontsize=20, fontweight='bold')
+            ax.set_ylabel("Latency (seconds)", fontsize=20)
+            ax.tick_params(axis='x', labelsize=18)
             ax.grid(axis='y', linestyle='--', alpha=0.5)
 
             for bar in bars:
                 height = bar.get_height()
                 ax.text(bar.get_x() + bar.get_width()/2., height + (max(values)*0.01),
-                        f'{height:.3f}', ha='center', va='bottom', fontsize=11, fontweight='bold')
+                        f'{height:.3f}', ha='center', va='bottom', fontsize=16, fontweight='bold')
 
             c_iter = arch_data['c_iters'][op]
             py_iter = data['common']['py_iter']
             ax.text(0.98, 0.98, f'C Iter: {c_iter}\nPy Iter: {py_iter}',
-                    transform=ax.transAxes, ha='right', va='top', fontsize=11,
+                    transform=ax.transAxes, ha='right', va='top', fontsize=16,
                     bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="gray", alpha=0.8))
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.96])

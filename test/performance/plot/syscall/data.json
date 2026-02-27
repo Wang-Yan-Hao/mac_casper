@@ -1,13 +1,13 @@
 {
   "arm64": {
-    "labels": ["no mac", "no label", "dns", "fileargs", "grp", "netdb", "pwd", "sysctl", "syslog"],
+    "labels": ["no\nmac", "no\nlabel", "dns", "fileargs", "grp", "netdb", "pwd", "sysctl", "syslog"],
     "open": [1.0029, 1.0503, 1.1002, 1.0786, 0.6505, 0.6439, 0.6453, 0.6373, 0.6439],
     "socket": [1.2653, 1.3035, 1.3064, 0.1070, 0.1070, 0.1071, 0.1085, 0.1087, 0.1074],
     "sysctl": [0.7821, 0.8574, 0.8682, 0.7349, 0.7376, 0.7345, 0.7402, 0.8698, 0.8677],
     "c_iters": {"open": 400000, "socket": 200000, "sysctl": 400000}
   },
   "amd64": {
-    "labels": ["no mac", "no label", "dns", "fileargs", "grp", "netdb", "pwd", "sysctl", "syslog"],
+    "labels": ["no\nmac", "no\nlabel", "dns", "fileargs", "grp", "netdb", "pwd", "sysctl", "syslog"],
     "open": [1.1523, 1.2144, 1.2345, 1.2428, 0.7855, 0.7711, 0.7700, 0.7709, 0.7715],
     "socket": [1.0114, 1.0766, 1.0793, 0.0953, 0.0954, 0.0954, 0.0954, 0.0953, 0.0955],
     "sysctl": [1.2051, 1.2480, 1.2970, 0.9054, 0.9054, 0.9055, 0.9058, 1.2345, 1.2339],
