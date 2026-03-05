@@ -17,6 +17,14 @@ CASPER_CONFIG = {
         "needs_input": False,
         "binary": "../dns/cap_dns",
     },
+    "net": {
+        "functions": [
+            "cap_bind",
+            "cap_connect"
+        ],
+        "needs_input": False,
+        "binary": "../net/cap_net",
+    },
     "fileargs": {
         "functions": [
             "fileargs_open",

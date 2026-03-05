@@ -34,6 +34,9 @@ dns_origin
 dns_origin_mac
 dns_qps
 
+# NET
+cap_net
+
 # FILEARGS
 fileargs_demo
 casper_fileargs_demo
