@@ -4,6 +4,9 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
+import matplotlib
+matplotlib.use('Agg')
+
 os.path.dirname(__file__)
 
 
@@ -59,10 +62,16 @@ def plot_single_arch(arch_name, data):
 
         ax.set_xlim(0, max(max(base_vals), max(with_vals)) * 1.2)
 
-        iter_text = f"C: {c_iterations[i]}\nPython: {py_iterations[i]}"
+        if services[i] == "Net Service":
+            bind_iters = c_iterations[i][0]
+            conn_iters = c_iterations[i][1]
+            iter_text = f"C bind: {bind_iters}\nC connect: {conn_iters}\nPython: {py_iterations[i]}"
+        else:
+            iter_text = f"C: {c_iterations[i]}\nPython: {py_iterations[i]}"
+
         ax.text(
             0.98,
-            1.18,
+            1.27,
             iter_text,
             transform=ax.transAxes,
             ha="right",
