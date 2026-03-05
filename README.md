@@ -86,7 +86,7 @@ The `libcasper` service source code must be replaced to apply the MAC module hoo
 
 ```sh
 # Replace the system file with our modified version
-sudo cp casper-src/service.c /usr/src/lib/libcasper/libcasper/service.c
+sudo cp casper_src/service.c /usr/src/lib/libcasper/libcasper/service.c
 # Recompile and install libcasper
 cd /usr/src/lib/libcasper
 sudo make all install
