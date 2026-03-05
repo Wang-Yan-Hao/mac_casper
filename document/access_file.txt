@@ -4,6 +4,9 @@ static const char *casper_dns_allowed_files_open[] = {
 };
 
 /* NET */
+static const char *casper_net_allowed_files_open[] = {
+	"/etc/nsswitch.conf", "/etc/hosts", "/etc/resolv.conf", "/etc/services"
+};
 
 /* GRP */
 static const char *grp_allowed_files_open[] = {

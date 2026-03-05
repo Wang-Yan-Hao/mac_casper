@@ -459,6 +459,8 @@ service_start(struct service *service, int sock, int procfd)
 
 		if (!strcmp("system.dns", service->s_name))
 			label = "casper/dns";
+		else if (!strcmp("system.net", service->s_name))
+			label = "casper/net";
 		else if (!strcmp("system.fileargs", service->s_name))
 			label = "casper/fileargs";
 		else if (!strcmp("system.grp", service->s_name))

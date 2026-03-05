@@ -25,6 +25,11 @@ static const enum cas_obj_label dns_allow[] = {
 	OBJ_NONE /* Terminator */
 };
 
+static const enum cas_obj_label net_allow[] = {
+	OBJ_NSS_CONFIG, OBJ_NET_RESOLVE, OBJ_NET_SERVICES,
+	OBJ_NONE /* Terminator */
+};
+
 static const enum cas_obj_label grp_allow[] = { OBJ_NSS_CONFIG, OBJ_GROUP_DB,
 	OBJ_NONE };
 
@@ -39,10 +44,11 @@ static const enum cas_obj_label sysctl_allow[] = { OBJ_PWD_PUBLIC, OBJ_NONE };
 static const enum cas_obj_label syslog_allow[] = { OBJ_PWD_PUBLIC, OBJ_SYS_TIME,
 	OBJ_SYS_LOG, OBJ_NONE };
 
-static const struct cas_access_rule casper_open_map[] = { { SUB_DNS,
-							      dns_allow },
-	{ SUB_GRP, grp_allow }, { SUB_NETDB, netdb_allow },
-	{ SUB_PWD, pwd_allow }, { SUB_SYSCTL, sysctl_allow },
-	{ SUB_SYSLOG, syslog_allow }, { SUB_NONE, NULL } };
+static const struct cas_access_rule casper_open_map[] = {
+	{ SUB_DNS, dns_allow }, { SUB_NET, net_allow }, { SUB_GRP, grp_allow },
+	{ SUB_NETDB, netdb_allow }, { SUB_PWD, pwd_allow },
+	{ SUB_SYSCTL, sysctl_allow }, { SUB_SYSLOG, syslog_allow },
+	{ SUB_NONE, NULL }
+};
 
 #endif // CASPER_CHECKER_H

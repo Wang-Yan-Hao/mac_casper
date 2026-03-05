@@ -390,7 +390,17 @@ static int
 casper_mpo_socket_check_bind_t(struct ucred *cred, struct socket *so,
     struct label *solabel, struct sockaddr *sa)
 {
-	return casper_deny_default(cred);
+	struct mac_casper *obj = casper_get_label(cred);
+	if (obj == NULL)
+		return (0);
+
+	if (obj->type == SUB_DNS || obj->type == SUB_FILEARGS ||
+	    obj->type == SUB_GRP || obj->type == SUB_NETDB ||
+	    obj->type == SUB_PWD || obj->type == SUB_SYSCTL ||
+	    obj->type == SUB_SYSLOG)
+		return (EACCES);
+
+	return (0);
 }
 static int
 casper_mpo_socket_check_connect_t(struct ucred *cred, struct socket *so,
@@ -415,7 +425,7 @@ casper_mpo_socket_check_create_t(struct ucred *cred, int domain, int type,
 	if (obj == NULL)
 		return (0);
 
-	if (obj->type == SUB_DNS)
+	if (obj->type == SUB_DNS || obj->type == SUB_NET)
 		return (0);
 	else if (obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
 	    obj->type == SUB_NETDB || obj->type == SUB_PWD ||
@@ -555,10 +565,7 @@ casper_mpo_system_check_sysctl_t(struct ucred *cred, struct sysctl_oid *oidp,
 	if (obj == NULL)
 		return (0);
 
-	if (obj->type == SUB_DNS || obj->type == SUB_SYSCTL ||
-	    obj->type == SUB_SYSLOG)
-		return (0);
-	else if (obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
+	if (obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
 	    obj->type == SUB_NETDB || obj->type == SUB_PWD)
 		return (EACCES);
 
@@ -837,11 +844,10 @@ casper_mpo_vnode_check_create_t(struct ucred *cred, struct vnode *dvp,
 	if (obj == NULL)
 		return (0);
 
-	if (obj->type == SUB_FILEARGS)
-		return (0);
-	else if (obj->type == SUB_DNS || obj->type == SUB_GRP ||
-	    obj->type == SUB_NETDB || obj->type == SUB_PWD ||
-	    obj->type == SUB_SYSCTL || obj->type == SUB_SYSLOG)
+	if (obj->type == SUB_DNS || obj->type == SUB_NET ||
+	    obj->type == SUB_GRP || obj->type == SUB_NETDB ||
+	    obj->type == SUB_PWD || obj->type == SUB_SYSCTL ||
+	    obj->type == SUB_SYSLOG)
 		return (EACCES);
 
 	return (0);
@@ -867,9 +873,9 @@ casper_mpo_vnode_check_stat_t(struct ucred *active_cred,
 	if (obj == NULL)
 		return (0);
 
-	if (obj->type == SUB_DNS || obj->type == SUB_FILEARGS ||
-	    obj->type == SUB_GRP || obj->type == SUB_NETDB ||
-	    obj->type == SUB_PWD)
+	if (obj->type == SUB_DNS || obj->type == SUB_NET ||
+	    obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
+	    obj->type == SUB_NETDB || obj->type == SUB_PWD)
 		return (0);
 	else if (obj->type == SUB_SYSCTL || obj->type == SUB_SYSLOG)
 		return (EACCES);

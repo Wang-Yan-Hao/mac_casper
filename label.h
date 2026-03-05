@@ -9,6 +9,7 @@
 enum cas_sub_label {
 	SUB_NONE = 0, /* Not Label */
 	SUB_DNS,
+	SUB_NET,
 	SUB_FILEARGS,
 	SUB_GRP,
 	SUB_NETDB,
@@ -24,9 +25,10 @@ struct cas_sub_label_map {
 };
 
 static const struct cas_sub_label_map cas_sub_label_map[] = {
-	{ "dns", SUB_DNS }, { "fileargs", SUB_FILEARGS }, { "grp", SUB_GRP },
-	{ "netdb", SUB_NETDB }, { "pwd", SUB_PWD }, { "sysctl", SUB_SYSCTL },
-	{ "syslog", SUB_SYSLOG }, { NULL, SUB_NONE } /* Sentinel */
+	{ "dns", SUB_DNS }, { "net", SUB_NET }, { "fileargs", SUB_FILEARGS },
+	{ "grp", SUB_GRP }, { "netdb", SUB_NETDB }, { "pwd", SUB_PWD },
+	{ "sysctl", SUB_SYSCTL }, { "syslog", SUB_SYSLOG },
+	{ NULL, SUB_NONE } /* Sentinel */
 };
 
 /* ==========================================================

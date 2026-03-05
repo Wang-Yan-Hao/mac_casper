@@ -151,8 +151,8 @@ int main() {
     int connect_port = 53;              /* DNS TCP port */
     int bind_port = 8080;               /* Local port for binding */
 
-    printf("PID: %d. Press ENTER to initialize (Attach DTrace to trace syscalls)...\n", getpid());
-    getchar();
+    // printf("PID: %d. Press ENTER to initialize (Attach DTrace to trace syscalls)...\n", getpid());
+    // getchar();
 
     /* 1. Initialize Casper Core */
     cap_casper = cap_init();
@@ -180,8 +180,8 @@ int main() {
     test_cap_bind(cap_net, bind_port);
 
     /* 4. Finalizing */
-    printf("\nAll tests completed. Press ENTER to close channels and exit...\n");
-    getchar();
+    // printf("\nAll tests completed. Press ENTER to close channels and exit...\n");
+    // getchar();
 
     cap_close(cap_net);
     printf("Finished.\n");
