@@ -15,7 +15,7 @@ CASPER_CONFIG = {
             "gethostbyaddr"
         ],
         "needs_input": False,
-        "binary": "../dns/performance/cap_dns",
+        "binary": "../dns/cap_dns",
     },
     "fileargs": {
         "functions": [
@@ -25,8 +25,8 @@ CASPER_CONFIG = {
             "fileargs_fopen"
         ],
         "needs_input": True,
-        "input_file": "../fileargs/performance/test1.txt",
-        "binary": "../fileargs/performance/casper_fileargs_perf",
+        "input_file": "../fileargs/test1.txt",
+        "binary": "../fileargs/casper_fileargs_perf",
     },
     "grp": {
         "functions": [
@@ -38,14 +38,14 @@ CASPER_CONFIG = {
             "cap_getgrent_r"
         ],
         "needs_input": False,
-        "binary": "../grp/performance/casper_grp_perf",
+        "binary": "../grp/casper_grp_perf",
     },
     "netdb": {
         "functions": [
             "cap_getprotobyname"
         ],
         "needs_input": False,
-        "binary": "../netdb/performance/casper_netdb_perf",
+        "binary": "../netdb/casper_netdb_perf",
     },
     "pwd": {
         "functions": [
@@ -57,7 +57,7 @@ CASPER_CONFIG = {
             "cap_getpwent_r"
         ],
         "needs_input": False,
-        "binary": "../pwd/performance/casper_pwd_perf",
+        "binary": "../pwd/casper_pwd_perf",
     },
     "sysctl": {
         "functions": [
@@ -66,14 +66,14 @@ CASPER_CONFIG = {
             "cap_sysctl"
         ],
         "needs_input": False,
-        "binary": "../sysctl/performance/casper_sysctl_perf",
+        "binary": "../sysctl/casper_sysctl_perf",
     },
     "syslog": {
         "functions": [
             "cap_syslog",
         ],
         "needs_input": False,
-        "binary": "../syslog/performance/casper_syslog_perf",
+        "binary": "../syslog/casper_syslog_perf",
     },
 }
 
@@ -87,7 +87,7 @@ CASPER_CONFIG_QPS = {
             "cap_gethostbyaddr"
         ],
         "needs_input": False,
-        "binary": "../dns/performance/dns_qps",
+        "binary": "../dns/dns_qps",
     },
     "grp": {
         "functions": [
@@ -99,14 +99,14 @@ CASPER_CONFIG_QPS = {
             "cap_getgrent_r"
         ],
         "needs_input": False,
-        "binary": "../grp/performance/casper_grp_perf",
+        "binary": "../grp/casper_grp_perf",
     },
     "netdb": {
         "functions": [
             "cap_getprotobyname"
         ],
         "needs_input": False,
-        "binary": "../netdb/performance/casper_netdb_perf",
+        "binary": "../netdb/casper_netdb_perf",
     },
     "pwd": {
         "functions": [
@@ -118,7 +118,7 @@ CASPER_CONFIG_QPS = {
             "cap_getpwent_r"
         ],
         "needs_input": False,
-        "binary": "../pwd/performance/casper_pwd_perf",
+        "binary": "../pwd/casper_pwd_perf",
     },
 }
 
