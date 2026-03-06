@@ -71,7 +71,7 @@ def plot_single_arch(arch_name, data):
 
         ax.text(
             0.98,
-            1.27,
+            1.30,
             iter_text,
             transform=ax.transAxes,
             ha="right",
