@@ -6,7 +6,7 @@ import numpy as np
 
 os.path.dirname(__file__)
 
-with open("qps.json", "r") as f:
+with open("data.json", "r") as f:
     data = json.load(f)
 
 functions = data["functions"]
@@ -80,4 +80,4 @@ ax.grid(axis="y", linestyle="--", alpha=0.6)
 
 plt.tight_layout()
 plt.savefig("qps_comparison.png", dpi=300)
-print("Successfully generated qps_comparison.png from qps.json")
+print("Successfully generated qps_comparison.png from data.json")
