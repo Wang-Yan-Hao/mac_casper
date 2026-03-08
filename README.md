@@ -80,6 +80,7 @@ and append `,?casper` to the default_labels line:
 
 default_labels file ?biba,?lomac,?mls,?sebsd,?casper
 ```
+
 ### Patching libcasper
 
 The `libcasper` service source code must be replaced to apply the MAC module hooks.
@@ -166,7 +167,7 @@ make
 
 Example output:
 
-```
+```sh
 getnameinfo took 0.045159 seconds for 1 iterations
 gethostbyname took 0.009020 seconds for 1 iterations
 gethostbyname2 took 0.004265 seconds for 1 iterations
