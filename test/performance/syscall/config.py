@@ -2,7 +2,7 @@ import subprocess
 import os
 
 TEST_CATEGORIES = ["open", "socket", "sysctl"]
-LABELS = ["baseline", "dns", "fileargs", "grp", "netdb", "pwd", "sysctl", "syslog"]
+LABELS = ["baseline", "dns", "net", "fileargs", "grp", "netdb", "pwd", "sysctl", "syslog"]
 
 DEFAULT_ITERATIONS = 50
 

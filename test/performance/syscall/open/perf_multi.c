@@ -17,6 +17,9 @@
 #if defined(MAC_DNS)
     #define CURRENT_LABEL "casper/dns"
     #define TEST_TYPE "dns"
+#elif defined(MAC_NET)
+    #define CURRENT_LABEL "casper/net"
+    #define TEST_TYPE "net"
 #elif defined(MAC_FILEARGS)
     #define CURRENT_LABEL "casper/fileargs"
     #define TEST_TYPE "fileargs"

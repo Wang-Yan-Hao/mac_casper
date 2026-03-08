@@ -4,6 +4,7 @@ CFLAGS=		-O0 -DITERATIONS=${ITERATIONS}
 
 PROGS=	perf_baseline \
 		perf_dns \
+		perf_net \
 		perf_fileargs \
 		perf_grp \
 		perf_netdb \
@@ -17,6 +18,7 @@ ${PROGS}: perf_multi.c
 	@case $@ in \
 		perf_baseline) ${CC} ${CFLAGS} -o $@ perf_multi.c ;; \
 		perf_dns)      ${CC} ${CFLAGS} -DMAC_DNS -o $@ perf_multi.c ;; \
+		perf_net)      ${CC} ${CFLAGS} -DMAC_NET -o $@ perf_multi.c ;; \
 		perf_fileargs) ${CC} ${CFLAGS} -DMAC_FILEARGS -o $@ perf_multi.c ;; \
 		perf_grp)      ${CC} ${CFLAGS} -DMAC_GRP -o $@ perf_multi.c ;; \
 		perf_netdb)    ${CC} ${CFLAGS} -DMAC_NETDB -o $@ perf_multi.c ;; \
