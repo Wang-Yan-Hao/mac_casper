@@ -1,107 +1,94 @@
 #define WITH_CASPER
 
 #include <sys/types.h>
-#include <sys/mac.h>
 #include <sys/nv.h>
-#include <sys/socket.h>
-
-#include <netinet/in.h>
-
-#include <arpa/inet.h>
-#include <casper/cap_dns.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <libcasper.h>
-#include <netdb.h>
+#include <casper/cap_grp.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 
 static int
-cap_dns_attack(cap_channel_t *chan, const char *cmd)
+cap_attack(cap_channel_t *chan, const char *cmd)
 {
-	nvlist_t *nvlin, *nvlout;
-	int error, attack_errno = -1;
+    nvlist_t *nvlin, *nvlout;
+    int attack_errno = -1;
 
-	/* 1. 建立 Request */
-	nvlin = nvlist_create(0);
-	if (nvlin == NULL)
-		return (ENOMEM);
+    nvlin = nvlist_create(0);
+    if (nvlin == NULL)
+        return (ENOMEM);
 
-	nvlist_add_string(nvlin, "cmd", cmd);
+    nvlist_add_string(nvlin, "cmd", cmd);
 
-	/* 2. 傳送 Request 給 Casper Daemon (nvlin 會被自動 free 掉) */
-	nvlout = cap_xfer_nvlist(chan, nvlin);
-	if (nvlout == NULL) {
-		printf("cap_xfer_nvlist failed\n");
-		return (EAI_MEMORY);
-	}
+    nvlout = cap_xfer_nvlist(chan, nvlin);
+    if (nvlout == NULL) {
+        printf("cap_xfer_nvlist failed\n");
+        return (EFAULT);
+    }
 
-	printf("Request sent successfully: %s\n", cmd);
+    if (nvlist_exists_number(nvlout, "attack_errno"))
+        attack_errno = (int)nvlist_get_number(nvlout, "attack_errno");
+    else
+        printf("Warning: 'attack_errno' not found in response.\n");
 
-	/* 3. 讀取 Casper 原生的 error 狀態 */
-	error = (int)nvlist_get_number(nvlout, "error");
-	if (error != 0) {
-		printf("Casper service returned internal error: %d\n", error);
-	}
+    nvlist_destroy(nvlout);
 
-	/* 4. 讀取我們自定義的 attack_errno */
-	if (nvlist_exists_number(nvlout, "attack_errno")) {
-		attack_errno = (int)nvlist_get_number(nvlout, "attack_errno");
-		printf("Attack result (attack_errno): %d\n", attack_errno);
-	} else {
-		printf(
-		    "Warning: 'attack_errno' not found. Check if Daemon handles this cmd.\n");
-	}
-
-	nvlist_destroy(nvlout);
-
-	/* 回傳攻擊測試的結果，而不是 Casper 的 error */
-	return (attack_errno);
+    return (attack_errno);
 }
 
 int
-main(void)
+main(int argc, char *argv[])
 {
-	cap_channel_t *cap_casper;
-	cap_channel_t *cap_net;
-	int attack_err;
+    cap_channel_t *cap_casper, *cap_xxx;
+    int attack_err;
 
-	cap_casper = cap_init();
-	if (cap_casper == NULL) {
-		perror("cap_init");
-		return (1);
-	}
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <ATTACK_TYPE>\n", argv[0]);
+        fprintf(stderr, "Example: %s ATTACK_EXEC\n", argv[0]);
+        fprintf(stderr, "Available: ATTACK_EXEC, ATTACK_FILE_READ, "
+                        "ATTACK_FILE_WRITE, ATTACK_CRED, ATTACK_NET, "
+                        "ATTACK_IPC, ATTACK_KLD, ATTACK_SYSCTL\n");
+        return (1);
+    }
 
-	cap_net = cap_service_open(cap_casper, "system.dns");
-	if (cap_net == NULL) {
-		perror("cap_service_open(system.dns)");
-		cap_close(cap_casper);
-		return (1);
-	}
+    const char *attack_cmd = argv[1];
 
-	/* * Simulate attack
-	 * 注意：這裡必須與 Daemon 端的 strcmp 完全一致（全大寫）
-	 */
-	attack_err = cap_dns_attack(cap_net, "ATTACK_EXEC");
+    cap_casper = cap_init();
+    if (cap_casper == NULL) {
+        perror("cap_init");
+        return (1);
+    }
 
-	/* 判斷 MAC Policy 是否成功攔截 */
-	if (attack_err == EACCES || attack_err == EPERM) {
-		printf("SUCCESS: MAC Policy blocked the attack! (errno = %d)\n",
-		    attack_err);
-	} else if (attack_err == 0) {
-		printf("FAILED: Attack bypassed the policy! (errno = 0)\n");
-	} else {
-		printf(
-		    "UNKNOWN: Attack failed for another reason (errno = %d)\n",
-		    attack_err);
-	}
+    cap_xxx = cap_service_open(cap_casper, "system.grp");
+    if (cap_xxx == NULL) {
+        perror("cap_service_open() failed");
+        cap_close(cap_casper);
+        return (1);
+    }
 
-	printf("main end\n");
+    printf("--- Effectiveness Evaluation ---\n");
+    printf("Targeting service: system.grp\n");
+    printf("Executing command: %s\n", attack_cmd);
 
-	cap_close(cap_net);
-	cap_close(cap_casper);
-	return (0);
+    attack_err = cap_attack(cap_xxx, attack_cmd);
+
+    printf("--------------------------------\n");
+    if (attack_err == EACCES || attack_err == EPERM) {
+        printf("[SUCCESS] MAC Policy blocked the attack! (errno = %d: %s)\n",
+               attack_err, strerror(attack_err));
+    } else if (attack_err == 0) {
+        printf("[FAILED] Attack bypassed the policy! (Exited with 0)\n");
+    } else if (attack_err == -1) {
+         printf("[ERROR] Failed to get attack result from Casper.\n");
+    } else {
+        printf("[RESULT] Attack failed with unexpected errno = %d (%s)\n",
+               attack_err, strerror(attack_err));
+    }
+    printf("--------------------------------\n");
+
+    cap_close(cap_xxx);
+    cap_close(cap_casper);
+    return (0);
 }

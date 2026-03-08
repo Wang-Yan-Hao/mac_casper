@@ -75,3 +75,7 @@ perf_syslog
 perf_sysctl
 perf_pwd
 perf_fileargs
+
+# Effect eval
+main
+

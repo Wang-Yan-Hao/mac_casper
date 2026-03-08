@@ -1,2 +1,2 @@
 all:
-	cc main.c -o main -O0 -lcasper -lcap_dns -lnv
+	cc main.c -o main -O0 -lcasper -lcap_grp -lnv
