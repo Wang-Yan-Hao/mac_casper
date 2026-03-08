@@ -17,7 +17,7 @@ def plot_performance(json_file):
     ops = ['open', 'socket', 'sysctl']
     op_titles = ['open("/etc/hosts") + close()', 'socket(AF_INET) + close()', 'sysctl']
 
-    fig, axes = plt.subplots(3, 2, figsize=(18, 22))
+    fig, axes = plt.subplots(3, 2, figsize=(21, 22))
 
     for row, op in enumerate(ops):
         for col, arch in enumerate(archs):
