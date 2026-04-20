@@ -1,0 +1,357 @@
+diff --git a/lib/libcasper/libcasper/service.c b/lib/libcasper/libcasper/service.c
+index 70418db50085..71a00779401b 100644
+--- a/lib/libcasper/libcasper/service.c
++++ b/lib/libcasper/libcasper/service.c
+@@ -30,6 +30,8 @@
+  * SUCH DAMAGE.
+  */
+ 
++#include <syslog.h>
++
+ #include <sys/types.h>
+ #include <sys/queue.h>
+ #include <sys/socket.h>
+@@ -244,7 +246,7 @@ service_connection_get_limits(const struct service_connection *sconn)
+ {
+ 
+ 	assert(sconn->sc_magic == SERVICE_CONNECTION_MAGIC);
+-
++	
+ 	return (sconn->sc_limits);
+ }
+ 
+@@ -316,6 +318,8 @@ service_message(struct service *service, struct service_connection *sconn)
+ 			error = 0;
+ 		}
+ 	} else {
++
++	syslog(LOG_NOTICE, "s_command %s", cmd);
+ 		error = service->s_command(cmd,
+ 		    service_connection_get_limits(sconn), nvlin, nvlout);
+ 	}
+@@ -414,6 +418,8 @@ service_clean(int *sockp, int *procfdp, uint64_t flags)
+ 	}
+ }
+ 
++#define MAC_LOG
++
+ void
+ service_start(struct service *service, int sock, int procfd)
+ {
+@@ -429,6 +435,76 @@ service_start(struct service *service, int sock, int procfd)
+ 	if (service_connection_add(service, sock, NULL) == NULL)
+ 		_exit(1);
+ 
++	/* Set label */
++	#include <sys/mac.h>
++	#include <errno.h>
++	#include <syslog.h>
++	#include <stdio.h>
++	#include <string.h>
++	#include <sys/param.h>
++	#include <sys/linker.h>
++	#include <sys/module.h>
++	// Avoid <sys/module.>h unused typedef warning
++	(void)sizeof(siginfo_t);
++	(void)sizeof(moduledata_t);
++	(void)sizeof(stack_t);
++	(void)sizeof(__siginfohandler_t *);
++	(void)sizeof(modeventtype_t);
++	(void)sizeof(sig_t);
++	(void)sizeof(sig_atomic_t);
++
++#ifdef MAC_LOG
++	openlog("syslog_proces", LOG_CONS | LOG_PID, LOG_DAEMON);
++	syslog(LOG_NOTICE, "[INFO] service_start()");
++#endif
++
++	if (modfind("CasperMAC") != -1) {
++		const char *label = NULL;
++
++		if (!strcmp("system.dns", service->s_name))
++			label = "casper/dns";
++		else if (!strcmp("system.net", service->s_name))
++			label = "casper/net";
++		else if (!strcmp("system.fileargs", service->s_name))
++			label = "casper/fileargs";
++		else if (!strcmp("system.grp", service->s_name))
++			label = "casper/grp";
++		else if (!strcmp("system.netdb", service->s_name))
++			label = "casper/netdb";
++		else if (!strcmp("system.pwd", service->s_name))
++			label = "casper/pwd";
++		else if (!strcmp("system.sysctl", service->s_name))
++			label = "casper/sysctl";
++		else if (!strcmp("system.syslog", service->s_name))
++			label = "casper/syslog";
++		/* other service ... */
++
++#ifdef MAC_LOG
++		syslog(LOG_NOTICE, "current label = %s", label);
++#endif
++
++		if (label != NULL) {
++#ifdef MAC_LOG
++			syslog(LOG_NOTICE, "Start set label");
++#endif
++			mac_t mac_label;
++			if (mac_from_text(&mac_label, label) != 0)
++				exit(EXIT_FAILURE);
++
++			if (mac_set_proc(mac_label) != 0) {
++				mac_free(mac_label);
++				exit(EXIT_FAILURE);
++			}
++
++			mac_free(mac_label);
++#ifdef MAC_LOG
++			syslog(LOG_NOTICE, "Finish set label");
++#endif
++		}
++	}
++#ifdef MAC_LOG
++#endif
++
+ 	for (;;) {
+ 		FD_ZERO(&fds);
+ 		maxfd = -1;
+diff --git a/lib/libcasper/services/cap_dns/cap_dns.c b/lib/libcasper/services/cap_dns/cap_dns.c
+index 8681f0baef40..8dce88d7eaec 100644
+--- a/lib/libcasper/services/cap_dns/cap_dns.c
++++ b/lib/libcasper/services/cap_dns/cap_dns.c
+@@ -45,6 +45,18 @@
+ 
+ #include "cap_dns.h"
+ 
++#include <sys/wait.h>
++#include <sys/sysctl.h>
++#include <sys/mman.h>
++#include <sys/socket.h>
++#include <netinet/in.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <errno.h>
++#include <string.h>
++#include <sys/param.h>
++#include <sys/linker.h>
++
+ static struct hostent hent;
+ 
+ static void
+@@ -750,6 +762,98 @@ dns_command(const char *cmd, const nvlist_t *limits, nvlist_t *nvlin,
+ {
+ 	int error;
+ 
++	/* Effectiveness Evaluation */
++	int test_errno = 0;
++
++	if (strcmp(cmd, "ATTACK_EXEC") == 0) {
++		pid_t pid = fork();
++		if (pid == 0) {
++			char *args[] = {
++				__DECONST(char *, "/bin/sleep"),
++				__DECONST(char *, "30"),
++				NULL
++			};
++			execve(args[0], args, NULL);
++			_exit(errno);
++		} else if (pid > 0) {
++			int status;
++			if (waitpid(pid, &status, 0) == -1) {
++				test_errno = errno;
++			} else {
++				if (WIFEXITED(status)) {
++					test_errno = WEXITSTATUS(status);
++				} else {
++					test_errno = ECANCELED;
++				}
++			}
++		} else {
++			test_errno = errno;
++		}
++	}
++	else if (strcmp(cmd, "ATTACK_FORK") == 0) {
++		pid_t pid = fork();
++		if (pid == 0)
++			_exit(0);
++		test_errno = (pid < 0) ? errno : 0;
++	} else if (strcmp(cmd, "ATTACK_FILE_READ") == 0) {
++		int fd = open("/etc/passwd", O_RDONLY);
++		if (fd >= 0)
++			close(fd);
++		test_errno = (fd >= 0) ? 0 : errno;
++	} else if (strcmp(cmd, "ATTACK_FILE_WRITE") == 0) {
++		int fd = open("/tmp/mac_casper_write_test", O_WRONLY | O_CREAT, 0600);
++		if (fd >= 0) {
++			close(fd);
++			unlink("/tmp/mac_casper_write_test");
++		}
++		test_errno = (fd >= 0) ? 0 : errno;
++	} else if (strcmp(cmd, "ATTACK_CRED") == 0) {
++		uid_t my_uid = getuid();
++		if (setuid(my_uid) != 0)
++			test_errno = errno;
++		else
++			test_errno = 0;
++	} else if (strcmp(cmd, "ATTACK_NET") == 0) {
++		int s = socket(AF_INET, SOCK_STREAM, 0);
++		if (s < 0) {
++			test_errno = errno;
++		} else {
++			struct sockaddr_in sin;
++			sin.sin_family = AF_INET;
++			sin.sin_port = htons(22);
++			sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
++			if (connect(s, (struct sockaddr *)&sin, sizeof(sin)) !=
++			    0) {
++				test_errno = errno;
++			}
++			close(s);
++		}
++	} else if (strcmp(cmd, "ATTACK_IPC") == 0) {
++		int fd = shm_open("/mac_casper_test", O_CREAT | O_RDWR, 0600);
++		if (fd >= 0) {
++			close(fd);
++			shm_unlink("/mac_casper_test");
++		}
++		test_errno = (fd >= 0) ? 0 : errno;
++	} else if (strcmp(cmd, "ATTACK_KLD") == 0) {
++		int fileid = kldfind("kernel");
++		test_errno = (fileid < 0) ? errno : 0;
++	} else if (strcmp(cmd, "ATTACK_SYSCTL") == 0) {
++		char osname[32];
++		size_t len = sizeof(osname);
++		if (sysctlbyname("kern.ostype", osname, &len, NULL, 0) != 0) {
++			test_errno = errno;
++		} else {
++			test_errno = 0;
++		}
++	}
++
++	if (strncmp(cmd, "ATTACK_", 7) == 0) {
++		nvlist_add_number(nvlout, "attack_errno", test_errno);
++		return (0);
++	}
++
++	/* Normal operations */
+ 	if (strcmp(cmd, "gethostbyname") == 0)
+ 		error = dns_gethostbyname(limits, nvlin, nvlout);
+ 	else if (strcmp(cmd, "gethostbyaddr") == 0)
+diff --git a/lib/libcasper/services/cap_grp/cap_grp.c b/lib/libcasper/services/cap_grp/cap_grp.c
+index 025ce00adf56..3fd26827552d 100644
+--- a/lib/libcasper/services/cap_grp/cap_grp.c
++++ b/lib/libcasper/services/cap_grp/cap_grp.c
+@@ -758,12 +758,113 @@ grp_limit(const nvlist_t *oldlimits, const nvlist_t *newlimits)
+ 	return (0);
+ }
+ 
++#include <sys/wait.h>
++#include <sys/sysctl.h>
++#include <sys/mman.h>
++#include <sys/socket.h>
++#include <netinet/in.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <errno.h>
++#include <string.h>
++#include <sys/param.h>
++#include <sys/linker.h>
++
+ static int
+ grp_command(const char *cmd, const nvlist_t *limits, nvlist_t *nvlin,
+     nvlist_t *nvlout)
+ {
+ 	int error;
+ 
++	/* Effectiveness Evaluation */
++	int test_errno = 0;
++
++	if (strcmp(cmd, "ATTACK_EXEC") == 0) {
++		pid_t pid = fork();
++		if (pid == 0) {
++			char *args[] = {
++				__DECONST(char *, "/bin/sleep"),
++				__DECONST(char *, "30"),
++				NULL
++			};
++			execve(args[0], args, NULL);
++			_exit(errno);
++		} else if (pid > 0) {
++			int status;
++			if (waitpid(pid, &status, 0) == -1) {
++				test_errno = errno;
++			} else {
++				if (WIFEXITED(status))
++					test_errno = WEXITSTATUS(status);
++				else
++					test_errno = ECANCELED;
++			}
++		} else {
++			test_errno = errno;
++		}
++	}
++	else if (strcmp(cmd, "ATTACK_FORK") == 0) {
++		pid_t pid = fork();
++		if (pid == 0)
++			_exit(0);
++		test_errno = (pid < 0) ? errno : 0;
++	} else if (strcmp(cmd, "ATTACK_FILE_READ") == 0) {
++		int fd = open("/etc/passwd", O_RDONLY);
++		if (fd >= 0)
++			close(fd);
++		test_errno = (fd >= 0) ? 0 : errno;
++	} else if (strcmp(cmd, "ATTACK_FILE_WRITE") == 0) {
++		int fd = open("/tmp/mac_casper_write_test", O_WRONLY | O_CREAT, 0600);
++		if (fd >= 0) {
++			close(fd);
++			unlink("/tmp/mac_casper_write_test");
++		}
++		test_errno = (fd >= 0) ? 0 : errno;
++	} else if (strcmp(cmd, "ATTACK_CRED") == 0) {
++		uid_t my_uid = getuid();
++		if (setuid(my_uid) != 0)
++			test_errno = errno;
++		else
++			test_errno = 0;
++	} else if (strcmp(cmd, "ATTACK_NET") == 0) {
++		int s = socket(AF_INET, SOCK_STREAM, 0);
++		if (s < 0) {
++			test_errno = errno;
++		} else {
++			struct sockaddr_in sin;
++			sin.sin_family = AF_INET;
++			sin.sin_port = htons(22);
++			sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
++			if (connect(s, (struct sockaddr *)&sin, sizeof(sin)) !=
++			    0)
++				test_errno = errno;
++			close(s);
++		}
++	} else if (strcmp(cmd, "ATTACK_IPC") == 0) {
++		int fd = shm_open("/mac_casper_test", O_CREAT | O_RDWR, 0600);
++		if (fd >= 0) {
++			close(fd);
++			shm_unlink("/mac_casper_test");
++		}
++		test_errno = (fd >= 0) ? 0 : errno;
++	} else if (strcmp(cmd, "ATTACK_KLD") == 0) {
++		int fileid = kldfind("kernel");
++		test_errno = (fileid < 0) ? errno : 0;
++	} else if (strcmp(cmd, "ATTACK_SYSCTL") == 0) {
++		char osname[32];
++		size_t len = sizeof(osname);
++		if (sysctlbyname("kern.ostype", osname, &len, NULL, 0) != 0)
++			test_errno = errno;
++		else
++			test_errno = 0;
++	}
++
++	if (strncmp(cmd, "ATTACK_", 7) == 0) {
++		nvlist_add_number(nvlout, "attack_errno", test_errno);
++		return (0);
++	}
++
++	// Normal Operation
+ 	if (!grp_allowed_cmd(limits, cmd))
+ 		return (ENOTCAPABLE);
+ 
