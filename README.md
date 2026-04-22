@@ -95,7 +95,7 @@ sudo make all install
 
 ## Test
 
-All test code is located under the `test_program` folder.
+Some basic function test code is located under the `test_program` folder.
 Each Casper service has its own folder containing demo programs.
 For example, to test the DNS service:
 
@@ -155,50 +155,9 @@ As the output shows, our module successfully allows all legitimate actions witho
 
 ### Performance Test
 
-Each service folder also contains a `performance` subfolder with benchmarking code.
-
-For example, to test DNS service performance:
+The performance and effect test is located in `test` folder.
 
 ```sh
-cd test_program/dns/performance
-make
-./cap_dns
-```
-
-Example output:
-
-```sh
-getnameinfo took 0.045159 seconds for 1 iterations
-gethostbyname took 0.009020 seconds for 1 iterations
-gethostbyname2 took 0.004265 seconds for 1 iterations
-gethostbyaddr took 0.045715 seconds for 1 iterations
-```
-
-To run all performance tests:
-
-```sh
-cd script
-sh test_all_perf.sh
-```
-
-### Performance Test Utilities
-
-The `test_program/share/` folder contains Python scripts for analyzing performance test results:
-
-* `test_perf_mode.py`: Runs tests 50 times and reports the mode of the results.
-* `test_perf_mode_qps.py`: Calculates QPS (queries per second) results for DNS tests.
-* `test_perf_filtered.py`: Runs tests 50 times and filters out the lowest 5% and highest 5% of results.
-
-```sh
-kola@freebsd:~/git_projects/mac_casper/test_program/share $ python3.11 test_perf_mode.py -h
-Usage: python3 test_perf_mode.py [services] [--iter N] [--plot | --save-plot]
-Options:
-  --iter N        Run each test N times (default: 50)
-  --plot          Show KDE + histogram plots
-  --save-plot     Save KDE + histogram plots as PNG files
-  -h, --help      Show this help message and exit
-Examples:
-  python3 test_perf_mode.py fileargs --iter 100 --save-plot
-  python3 test_perf_mode.py dns grp
-  python3 test_perf_mode.py              # Run all services
+kola@generic:~/proj/mac_casper/test $ ls
+effect_eval	performance
 ```
