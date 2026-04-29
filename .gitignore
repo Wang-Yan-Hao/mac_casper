@@ -79,3 +79,5 @@ perf_fileargs
 # Effect eval
 main
 
+# Macro test
+*.txt
