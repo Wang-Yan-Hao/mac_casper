@@ -42,8 +42,11 @@ tunefs -l enable /
 To compile the kernel module and install it to the system:
 
 ```sh
-# Compile and install the module into /boot/modules
-sudo make all install
+sudo make clean
+sudo rm -f .depend.*
+
+make
+sudo make install
 ```
 
 To load the module automatically at system boot:
