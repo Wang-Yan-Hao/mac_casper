@@ -514,7 +514,6 @@ service_start(struct service *service, int sock, int procfd)
 		assert(maxfd >= 0);
 		assert(maxfd + 1 <= (int)FD_SETSIZE);
 		nfds = select(maxfd + 1, &fds, NULL, NULL, NULL);
-
 		if (nfds < 0) {
 			if (errno != EINTR)
 				_exit(1);
