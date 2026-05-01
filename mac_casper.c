@@ -134,7 +134,17 @@ casper_mpo_cred_check_setuid_t(struct ucred *cred, uid_t uid)
 static int
 casper_mpo_cred_check_visible_t(struct ucred *cr1, struct ucred *cr2)
 {
-	return casper_deny_default(cr1);
+	struct mac_casper *obj = casper_get_label(cr1);
+	if (obj == NULL)
+		return (0);
+
+	if (obj->type == SUB_DNS || obj->type == SUB_NET ||
+		obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
+		obj->type == SUB_NETDB || obj->type == SUB_PWD ||
+		obj->type == SUB_SYSLOG)
+		return (EACCES);
+
+	return (0);
 }
 /* ddb */
 /* devfs */
@@ -150,7 +160,17 @@ static int
 casper_mpo_inpcb_check_visible_t(struct ucred *cred, struct inpcb *inp,
     struct label *inplabel)
 {
-	return casper_deny_default(cred);
+	struct mac_casper *obj = casper_get_label(cred);
+	if (obj == NULL)
+		return (0);
+
+	if (obj->type == SUB_DNS || obj->type == SUB_NET ||
+		obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
+		obj->type == SUB_NETDB || obj->type == SUB_PWD ||
+		obj->type == SUB_SYSLOG)
+		return (EACCES);
+
+	return (0);
 }
 /* ip6q */
 /* jail */
@@ -1228,13 +1248,13 @@ static struct mac_policy_ops casper_mac_policy_ops = {
 	.mpo_cred_check_setresuid = casper_mpo_cred_check_setresuid_t,
 	.mpo_cred_check_setreuid = casper_mpo_cred_check_setreuid_t,
 	.mpo_cred_check_setuid = casper_mpo_cred_check_setuid_t,
-	.mpo_cred_check_visible = casper_mpo_cred_check_visible_t,
+	.mpo_cred_check_visible = casper_mpo_cred_check_visible_t, // Check
 	/* ddb */
 	/* devfs */
 	/* ifnet */
 	.mpo_ifnet_check_relabel = casper_mpo_ifnet_check_relabel_t,
 	/* inpcb */
-	.mpo_inpcb_check_visible = casper_mpo_inpcb_check_visible_t,
+	.mpo_inpcb_check_visible = casper_mpo_inpcb_check_visible_t, // Check
 	/* ip6q */
 	/* jail */
 	.mpo_ip4_check_jail = casper_mpo_ip4_check_jail_t,
@@ -1362,7 +1382,8 @@ static struct mac_policy_ops casper_mac_policy_ops = {
 	    casper_mpo_vnode_execve_will_transition_t,
 
 	/* vnode check */
-	// .mpo_vnode_check_lookup = casper_mpo_vnode_check_lookup, // Allow
+	// If you want debug which file it open, uncomment below
+	//.mpo_vnode_check_lookup = casper_mpo_vnode_check_lookup, // Allow
 	// .mpo_vnode_check_readlink = ... // Allow readlink
 	.mpo_vnode_check_open =
 	    casper_mpo_vnode_check_open, // Can only open restrict files
