@@ -17,6 +17,8 @@ x86
 checker/checker.o
 .depend.checker_checker.o
 __pycache__
+*.ko.debug
+*.ko.full
 
 # dtrace_casper/
 base
