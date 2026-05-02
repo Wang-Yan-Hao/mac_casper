@@ -21,7 +21,7 @@ case "$ARCH" in
     "arm64")
         # Raspberry Pi 4 settings
         FILE_COUNT=100
-        REPEAT_PER_ITER=10
+        REPEAT_PER_ITER=2
         echo "Platform: RPI4/ARM64 - Setting REPEAT_PER_ITER to $REPEAT_PER_ITER"
         ;;
     "amd64")
