@@ -585,8 +585,7 @@ casper_mpo_system_check_sysctl_t(struct ucred *cred, struct sysctl_oid *oidp,
 	if (obj == NULL)
 		return (0);
 
-	if (obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
-	    obj->type == SUB_NETDB || obj->type == SUB_PWD)
+	if (obj->type == SUB_GRP)
 		return (EACCES);
 
 	return (0);
