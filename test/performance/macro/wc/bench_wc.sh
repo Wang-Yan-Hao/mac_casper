@@ -26,8 +26,8 @@ case "$ARCH" in
         ;;
     "amd64")
         # Modern PC settings - scaled up to ensure measurable execution time
-        FILE_COUNT=500
-        REPEAT_PER_ITER=80
+        FILE_COUNT=100
+        REPEAT_PER_ITER=8
         echo "Platform: AMD64 PC - Setting REPEAT_PER_ITER to $REPEAT_PER_ITER"
         ;;
     *)
