@@ -7,7 +7,7 @@ if [ "$1" != "base" ] && [ "$1" != "exp" ]; then
 fi
 
 MODE=$1
-TESTS="md5 wc sockstat kdump ping logger"
+TESTS="md5 wc kdump ping logger sockstat" # sockstat should in end
 BASE_DIR=$(pwd)
 
 echo "=========================================================="
