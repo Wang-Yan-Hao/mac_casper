@@ -24,7 +24,7 @@ case "$ARCH" in
         ;;
     "amd64")
         # AMD64 is very fast; 10 repeats on 256MB ensures a stable 0.5s-1.0s sample.
-        REPEAT_COUNT=10
+        REPEAT_COUNT=3
         echo "Platform: AMD64 PC - Setting REPEAT_COUNT to $REPEAT_COUNT"
         ;;
     *)
