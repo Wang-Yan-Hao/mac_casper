@@ -20,7 +20,7 @@ echo "Detected CPU: $CPU_MODEL"
 case "$ARCH" in
     "arm64")
         # Raspberry Pi 4 settings
-        REPEAT_COUNT=80
+        REPEAT_COUNT=40
         echo "Platform: RPI4/ARM64 - Setting REPEAT_COUNT to $REPEAT_COUNT"
         ;;
     "amd64")
