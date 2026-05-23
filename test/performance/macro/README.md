@@ -23,9 +23,11 @@ When running `ping` tests, the default FreeBSD ICMP rate limiting may drop respo
 ## Running Benchmarks
 
 Use the provided `test_all.sh` script to execute the full suite and record baseline data:
-```bash
+
+```sh
 chmod +x test_all.sh
-./test_all.sh
+./test_all.sh -h
+Usage: test_all.ah [base|exp]
 ```
 
 Run `python kde.py` to get the statistics.
