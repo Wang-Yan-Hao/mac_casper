@@ -98,6 +98,12 @@ sudo make all install
 
 ## Test
 
+### Performance/Effect Test
+
+The performance and effectiveness test is located in `test` folder.
+
+### Other Test
+
 Some basic function test code is located under the `test_program` folder.
 Each Casper service has its own folder containing demo programs.
 For example, to test the DNS service:
@@ -131,8 +137,7 @@ Open failed
 Chdir failed
 ```
 
-Note: The last two errors (open and chdir) are expected.
-They occur because the MAC module restricts process access.
+The last two errors (open and chdir) are expected. They occur because the MAC module restricts process access.
 
 Casper also includes its own test suite, which can be run using `kyua`.
 
@@ -156,11 +161,3 @@ Results saved to /root/.kyua/store/results.usr_tests_lib_libcasper_services.2025
 
 As the output shows, our module successfully allows all legitimate actions without denial.
 
-### Performance Test
-
-The performance and effect test is located in `test` folder.
-
-```sh
-kola@generic:~/proj/mac_casper/test $ ls
-effect_eval	performance
-```
