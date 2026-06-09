@@ -1,5 +1,13 @@
 CC=		cc
-ITERATIONS?=	100000
+
+.if ${MACHINE_ARCH} == "aarch64"
+ITERATIONS?= 1600000
+.elif ${MACHINE_ARCH} == "amd64"
+ITERATIONS?= 8000000
+.else
+ITERATIONS?= 1
+.endif
+
 CFLAGS=		-O0 -DITERATIONS=${ITERATIONS}
 
 PROGS=	perf_baseline \

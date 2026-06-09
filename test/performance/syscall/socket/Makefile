@@ -1,6 +1,13 @@
 CC=		cc
-ITERATIONS?=	100000
 CFLAGS=		-O0 -DITERATIONS=${ITERATIONS}
+
+.if ${MACHINE_ARCH} == "aarch64"
+ITERATIONS?= 200000
+.elif ${MACHINE_ARCH} == "amd64"
+ITERATIONS?= 1600000
+.else
+ITERATIONS?= 1
+.endif
 
 PROGS=	perf_baseline \
 		perf_dns \
