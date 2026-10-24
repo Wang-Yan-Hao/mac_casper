@@ -153,7 +153,7 @@ def parse_qps(output):
     for line in output.splitlines():
         if "Second" in line:
             parts = line.split()
-            if len(parts) >= 4:
+            if len(parts) >= 5:
                 func = parts[0]
                 try:
                     sec = float(parts[4])

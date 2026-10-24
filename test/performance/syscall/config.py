@@ -1,19 +1,20 @@
 import subprocess
-import os
+from pathlib import Path
 
 TEST_CATEGORIES = ["open", "socket", "sysctl"]
 LABELS = ["baseline", "dns", "net", "fileargs", "grp", "netdb", "pwd", "sysctl", "syslog"]
 
 DEFAULT_ITERATIONS = 50
+SYSCALL_DIRECTORY = Path(__file__).resolve().parent
 
 def get_binary_path(category, label):
-    return os.path.join(category, f"perf_{label}")
+    return SYSCALL_DIRECTORY / category / f"perf_{label}"
 
 def run_program(cmd):
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return result.stdout
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         return ""
 
 def parse_times(output):

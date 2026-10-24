@@ -6,4 +6,16 @@ This directory contains the benchmarking suite designed to measure the overhead 
 * `build_all.sh`: A shell script to compile all C-based syscall test programs in the subdirectories.
 * `config.py`: Contains configuration parameters for the tests, such as iteration counts and specific syscall targets.
 
+Run the benchmark on FreeBSD with an explicit scenario. The script rebuilds the
+binaries, runs the benchmarks, and updates
+[`../../perf_plot/syscall/test_results.json`](../../perf_plot/syscall/test_results.json):
+
+```sh
+python3 test_syscall_mode.py --scenario baseline
+python3 test_syscall_mode.py --scenario with_mac
+```
+
+Results are stored separately by architecture and scenario. Generated JSON is
+ignored by Git.
+
 > Note: To successfully capture the C-program output via Python scripts, the mpo_pipe_check_write policy must be temporarily commented out in the Casper kernel module to avoid blocking the standard output pipe.

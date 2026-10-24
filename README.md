@@ -160,4 +160,3 @@ Results saved to /root/.kyua/store/results.usr_tests_lib_libcasper_services.2025
 ```
 
 As the output shows, our module successfully allows all legitimate actions without denial.
-

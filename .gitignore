@@ -83,3 +83,10 @@ main
 
 # Macro test
 *.txt
+!/test/requirements.txt
+
+# Test Python environment
+/test/.venv/
+
+# Generated performance plot data
+/test/perf_plot/**/*.json

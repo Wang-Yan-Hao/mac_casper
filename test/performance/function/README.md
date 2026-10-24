@@ -27,21 +27,23 @@ The `share/` folder provides the core testing logic:
 * **`test_perf_mode_qps.py`**: Evaluates the Queries Per Second (QPS) specifically for the DNS service, using KDE mode analysis to report stable throughput.
 * **`config.py`**: Shared configuration settings for the test runs.
 
-Before running python test, you need run `sh build_all.sh` in `share` folder to build all test.
+Before running the Python tests, run `sh build_all.sh` in the `share` folder to
+build all test programs. Run on FreeBSD.
 
-Then run like differnt python script.
+For the function benchmark, specify whether this run is the baseline or
+with-MAC scenario. Results are written to
+[`../../perf_plot/function/test_results.json`](../../perf_plot/function/test_results.json)
+and are ignored by Git.
 
 ```sh
-kola@generic:~/proj/mac_casper/test/performance/function/share $ python3.11 test_perf_mode.py -h
-Usage: python3 test_perf_mode.py [services] [--iter N] [--plot | --save-plot]
-Options:
-  --iter N        Run each test N times (default: 50)
-  --plot          Show KDE + histogram plots
-  --save-plot     Save KDE + histogram plots as PNG files
-  -h, --help      Show this help message and exit
-Examples:
-  python3 test_perf_mode.py fileargs --iter 100 --save-plot
-  python3 test_perf_mode.py dns grp
-  python3 test_perf_mode.py              # Run all services
+cd share
+sh build_all.sh
+python3 test_perf_mode.py --scenario baseline
+python3 test_perf_mode.py --scenario with_mac
+python3 test_perf_mode_qps.py --scenario baseline dns
+python3 test_perf_mode_qps.py --scenario with_mac dns
 ```
 
+The DNS QPS executable performs a long-running measurement and does not use
+`--iter`. The helper scripts can also select specific services; use `-h` for
+the available options.
