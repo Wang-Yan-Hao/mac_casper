@@ -13,7 +13,7 @@ def plot_performance(json_file):
         print(f"Error: {json_file} not found.")
         return
 
-    archs = ['arm64', 'amd64']
+    archs = ['arm64', 'x86-64']
     ops = ['open', 'socket', 'sysctl']
     op_titles = ['open("/etc/hosts") + close()', 'socket(AF_INET) + close()', 'sysctl']
 
