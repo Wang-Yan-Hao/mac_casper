@@ -104,12 +104,12 @@ The performance and effectiveness test is located in `test` folder.
 
 ### Other Test
 
-Some basic function test code is located under the `test_program` folder.
+Some basic function test code is located under the `demo` folder.
 Each Casper service has its own folder containing demo programs.
 For example, to test the DNS service:
 
 ```sh
-cd test_program/dns # DNS service
+cd demo/dns # DNS service
 make
 ./getaddr
 ```

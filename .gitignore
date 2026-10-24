@@ -81,8 +81,6 @@ perf_fileargs
 # Effect eval
 main
 
-# Macro test
-*.txt
 !/test/requirements.txt
 
 # Test Python environment
