@@ -20,7 +20,7 @@ echo "=========================================================="
 if [ "$MODE" = "exp" ]; then
     if ! kldstat | grep -q "mac_casper"; then
         echo "Error: mac_casper module NOT loaded!"
-        echo "Please run: sudo kldload mac_casper.ko before testing."
+        echo "Enable mac_casper_load=\"YES\" in /boot/loader.conf and reboot."
         exit 1
     fi
     echo "[Checked] MAC module is active."

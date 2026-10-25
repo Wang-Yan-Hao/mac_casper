@@ -1,63 +1,40 @@
 #!/bin/sh
 
-set -e  # Exit on any command failure
+set -eu
 
-echo "=== Testing Casper Services ==="
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd -P)
+REPO_ROOT=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd -P)
 
-# DNS Service Tests
-echo ""
-echo ">>> Testing Casper DNS service: getaddr"
-cd ../demo/dns
-make
-./getadd || { echo "getaddr test FAILED"; exit 1; }
+run_demo()
+{
+	directory=$1
+	binary=$2
 
-echo ">>> Testing Casper DNS service: cap_dns"
-cd performance
-make
-./cap_dns || { echo "cap_dns test FAILED"; exit 1; }
+	printf '\n>>> Building and running %s/%s\n' "$directory" "$binary"
+	(
+		cd "$REPO_ROOT/$directory"
+		make
+		"./$binary"
+	)
+}
 
-# FILEARGS Service Test
-echo ""
-echo ">>> Testing Casper fileargs service"
-cd ../../fileargs
-make
-sh run.sh || { echo "fileargs test FAILED"; exit 1; }
+printf '%s\n' "=== Casper service smoke tests ==="
+printf '%s\n' "Run this on FreeBSD with the required Casper libraries and services."
 
-# GRP Service Test
-echo ""
-echo ">>> Testing Casper grp service"
-cd ../grp
-make
-./casper_grp_demo || { echo "casper_grp_demo test FAILED"; exit 1; }
+run_demo demo/dns getadd
+run_demo test/performance/function/dns cap_dns
 
-# NETDB Service Test
-echo ""
-echo ">>> Testing Casper netdb service"
-cd ../netdb
-make
-./casper_netdb_demo || { echo "casper_netdb_demo test FAILED"; exit 1; }
+printf '\n>>> Building and running demo/fileargs\n'
+(
+	cd "$REPO_ROOT/demo/fileargs"
+	make
+	sh ./run.sh
+)
 
-# PWD Service Test
-echo ""
-echo ">>> Testing Casper pwd service"
-cd ../pwd
-make
-./casper_pwd_demo || { echo "casper_pwd_demo test FAILED"; exit 1; }
+run_demo demo/grp casper_grp_demo
+run_demo demo/netdb casper_netdb_demo
+run_demo demo/pwd casper_pwd_demo
+run_demo demo/sysctl casper_sysctl_demo
+run_demo demo/syslog casper_syslog_demo
 
-# SYSCTL Service Test
-echo ""
-echo ">>> Testing Casper sysctl service"
-cd ../sysctl
-make
-./casper_sysctl_demo || { echo "casper_sysctl_demo test FAILED"; exit 1; }
-
-# SYSLOG Service Test
-echo ""
-echo ">>> Testing Casper syslog service"
-cd ../syslog
-make
-./casper_syslog_demo || { echo "casper_syslog_demo test FAILED"; exit 1; }
-tail -n 2 /var/log/messages
-
-echo ""
-echo "=== All Casper service tests completed successfully ==="
+printf '\n%s\n' "=== Casper service smoke tests completed ==="

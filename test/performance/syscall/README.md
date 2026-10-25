@@ -8,7 +8,7 @@ This directory contains the benchmarking suite designed to measure the overhead 
 
 Run the benchmark on FreeBSD with an explicit scenario. The script rebuilds the
 binaries, runs the benchmarks, and updates
-[`../../perf_plot/syscall/test_results.json`](../../perf_plot/syscall/test_results.json):
+[`../../perf_plot/syscall/`](../../perf_plot/syscall/):
 
 ```sh
 python3 test_syscall_mode.py --scenario baseline

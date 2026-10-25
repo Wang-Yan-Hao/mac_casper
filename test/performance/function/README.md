@@ -32,7 +32,7 @@ build all test programs. Run on FreeBSD.
 
 For the function benchmark, specify whether this run is the baseline or
 with-MAC scenario. Results are written to
-[`../../perf_plot/function/test_results.json`](../../perf_plot/function/test_results.json)
+[`../../perf_plot/function/`](../../perf_plot/function/)
 and are ignored by Git.
 
 ```sh

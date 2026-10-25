@@ -1,162 +1,151 @@
 # mac_casper
 
-## Introduction
+`mac_casper` is an experimental FreeBSD MAC policy module that assigns labels
+to Casper service processes and selected system files. The policy restricts
+which files labeled service processes may open and applies additional
+service-specific checks to operations such as socket access.
 
-Capsicum is a lightweight capability-based security framework in FreeBSD
-designed to restrict process privileges. Casper builds on Capsicum by
-providing various system services, such as DNS resolution, but these
-services run in normal mode, leaving potential security vulnerabilities.
+This is a FreeBSD kernel project. The kernel module, MAC framework, Casper
+services, `setfmac`, and DTrace examples cannot be built or exercised on Linux.
+Use a test machine or VM: loading a MAC policy and changing system labels can
+affect normal system services.
 
-We propose a sandboxing mechanism for Casper based on Mandatory
-Access Control (MAC), which mitigates the risks of privilege
-escalation, unauthorized network access, and data tampering.
+## Repository guide
 
-## Install
+- [`src/`](./src/README.md) contains hook implementations and their internal
+  declarations.
+- [`casper_src/`](./casper_src/README.md) contains a modified
+  `libcasper` service source file used to apply subject labels.
+- [`demo/`](./demo/README.md) contains small service examples.
+- [`test/`](./test/README.md) contains effect and performance tests.
+- [`script/`](./script/README.md) contains development, label, and
+  DTrace helpers.
 
-### Prerequisites
+## Build the kernel module
 
-Before installing the module, ensure your file system supports MAC Multilabel.
-This is required for persistent label storage.
-
-Check status:
-
-```sh
-# Option 1: Check running system (Recommended)
-mount | grep "/"
-# Look for "multilabel" in the parentheses.
-
-# Option 2: Check filesystem superblock
-# (Replace /dev/gpt/rootfs your actual root device)
-tunefs -p /dev/gpt/rootfs | grep "MAC multilabel"
-# Expected: MAC multilabel: (-l)
-```
-
-If multilabel is not present, boot into Single User Mode and run:
-
-```sh
-tunefs -l enable /
-```
-
-### Build and Install
-
-To compile the kernel module and install it to the system:
+Build and install on FreeBSD with a source tree and kernel build environment
+compatible with the running system:
 
 ```sh
 sudo make clean
-sudo rm -f .depend.*
-
-make
-sudo make install
-```
-
-To load the module automatically at system boot:
-
-```sh
-# This adds mac_casper_load="YES" to /boot/loader.conf
-sudo sysrc -f /boot/loader.conf mac_casper_load="YES"
-```
-
-### Label Setup
-
-The MAC module relies on file labels to enforce security policies.
-You must apply these labels to the relevant system files.
-
-Set up the `rc.d` service. This ensures labels are correctly applied on every boot.
-
-```sh
-# -m 755: Sets mode to rwxr-xr-x (Read/Write/Execute for Owner, Read/Execute for others)
-sudo install -m 755 script/label/casper_label_rc /usr/local/etc/rc.d/casper_label
-
-# 2. Enable the service in /etc/rc.conf
-sudo sysrc casper_label_enable="YES"
-
-# 3. Start the service immediately (no need to reboot yet)
-sudo service casper_label start
-```
-
-You need to register the casper label name in the system configuration. Open `/etc/mac.conf`
-and append `,?casper` to the default_labels line:
-
-```sh
-# Edit /etc/mac.conf
-# Look for the 'default_labels file' line and add ',?casper' to the end.
-
-default_labels file ?biba,?lomac,?mls,?sebsd,?casper
-```
-
-### Patching libcasper
-
-The `libcasper` service source code must be replaced to apply the MAC module hooks.
-
-```sh
-# Replace the system file with our modified version
-sudo cp casper_src/service.c /usr/src/lib/libcasper/libcasper/service.c
-# Recompile and install libcasper
-cd /usr/src/lib/libcasper
 sudo make all install
 ```
 
-## Test
+This installs the module using the FreeBSD kernel-module build framework,
+normally under `/boot/modules`.
 
-### Performance/Effect Test
-
-The performance and effectiveness test is located in `test` folder.
-
-### Other Test
-
-Some basic function test code is located under the `demo` folder.
-Each Casper service has its own folder containing demo programs.
-For example, to test the DNS service:
+This policy is managed as a boot-time module on the target system. Do not use
+`kldload` or `kldunload` as the normal activation or update procedure; a
+running MAC policy can be rejected for late loading or may not be safely
+unloaded. Enable it in `/boot/loader.conf`:
 
 ```sh
-cd demo/dns # DNS service
+mac_casper_load="YES"
+```
+
+Add the setting with an editor or:
+
+```sh
+sudo sysrc -f /boot/loader.conf mac_casper_load="YES"
+```
+
+Reboot to load the policy, then verify it:
+
+```sh
+kldstat -m mac_casper
+```
+
+After changing or reinstalling the module, reboot to activate the new version.
+
+## Filesystem labels and service labels
+
+File extattrs are used to persist object labels. Before using the policy,
+verify that the filesystem containing the labeled files supports MAC
+multilabel and that the required extended-attribute namespace is available.
+The exact setup depends on the filesystem and FreeBSD release.
+
+Check the mounted filesystem and the correct backing device first. Do not run
+`tunefs` against `/` or a guessed device: changing filesystem features is an
+administrative operation and may require the filesystem to be unmounted.
+Consult the FreeBSD `tunefs(8)` and `mount(8)` documentation for the target
+system.
+
+The policy's canonical object-label and file-path maps are in
+[`label.h`](./label.h); the subject-to-object open permissions are in
+[`checker.h`](./checker.h). Apply labels using the reviewed helper:
+
+```sh
+sudo sh script/label/set_label_on_file.sh
+```
+
+The helper skips paths that do not exist and stops if `setfmac` fails. To
+apply labels manually, run it after rebooting with the policy loaded. To apply
+them at boot, install and enable the optional rc service after confirming the
+file list:
+
+```sh
+sudo install -m 555 script/label/casper_label_rc \
+  /usr/local/etc/rc.d/casper_label
+sudo sysrc casper_label_enable="YES"
+```
+
+The service runs after `syslogd` and may relabel system files. Test it first
+on a disposable FreeBSD machine.
+
+To use textual MAC labels such as `casper/dns`, the system MAC label
+configuration must recognize the `casper` label element. Follow the
+configuration procedure for the target FreeBSD release and preserve existing
+`/etc/mac.conf` settings; do not replace the system's `default_labels` line
+with a copied example.
+
+## `libcasper` integration
+
+[`casper_src/service.c`](./casper_src/service.c) is a modified FreeBSD
+`libcasper` service implementation. It checks whether `CasperMAC` is loaded
+and assigns a subject label to recognized services. It is **not** built as
+part of the kernel module.
+
+The file is based on a particular FreeBSD source version. Before integrating
+it, identify the matching FreeBSD source revision and inspect the differences
+against that revision's `lib/libcasper/libcasper/service.c`. Do not copy it
+over `/usr/src` blindly: keep a backup or source-control diff, build and test
+`libcasper`, and retain a recovery path. See
+[`casper_src/README.md`](./casper_src/README.md).
+
+## Tests and examples
+
+Build and run an individual example from its directory, for example:
+
+```sh
+cd demo/dns
 make
-./getaddr
+./getadd
 ```
 
-Example output:
+The example needs network/DNS access. Other examples may require the MAC
+module and the matching Casper service libraries to be installed.
+
+[`script/test_all_perf.sh`](./script/test_all_perf.sh) is a FreeBSD service
+smoke-test helper; it builds and runs several examples and a DNS benchmark.
+Some tests require working Casper libraries, network access, or a configured
+MAC policy. It is not a substitute for the structured benchmark runners
+under `test/performance/`.
+
+The FreeBSD Casper test suite can be run with `kyua` when the corresponding
+system tests are installed. For effect and performance test prerequisites,
+commands, and result handling, see [`test/README.md`](./test/README.md) and
+[`test/performance/README.md`](./test/performance/README.md).
+
+## Development
+
+Run the formatter with:
 
 ```sh
-Testing getaddrinfo for www.google.com:
-IPv6: 2404:6800:4012:9::2004
-IPv4: 142.250.204.36
-
-Testing getnameinfo for 142.250.72.196:
-Hostname: sfo03s21-in-f4.1e100.net
-
-Testing gethostbyname for www.google.com:
-IP: 142.250.204.36
-
-Testing gethostbyname2 for www.google.com (family: IPv4):
-IP: 142.250.204.36
-
-Testing gethostbyaddr for 142.250.72.196:
-Hostname: sfo03s21-in-f4.1e100.net
-
-Open failed
-Chdir failed
+sh script/format.sh
 ```
 
-The last two errors (open and chdir) are expected. They occur because the MAC module restricts process access.
+The script formats the module, checker, label definitions, and the split hook
+sources. It requires `clang-format`.
 
-Casper also includes its own test suite, which can be run using `kyua`.
-
-```sh
-kola@freebsd:/usr/tests/lib/libcasper/services $ ls
-Kyuafile        cap_dns         cap_fileargs    cap_grp         cap_net         cap_netdb       cap_pwd         cap_sysctl
-kola@freebsd:/usr/tests/lib/libcasper/services $ sudo kyua test
-cap_netdb/netdb_test:cap_netdb__getprotobyname  ->  passed  [0.005s]
-cap_fileargs/fileargs_test:fileargs__fopen_create  ->  passed  [0.058s]
-
-...
-
-cap_sysctl/sysctl_test:cap_sysctl__operation  ->  passed  [0.027s]
-cap_sysctl/sysctl_test:cap_sysctl__recursive_limits  ->  passed  [0.004s]
-
-Results file id is usr_tests_lib_libcasper_services.20250930-170345-409518
-Results saved to /root/.kyua/store/results.usr_tests_lib_libcasper_services.20250930-170345-409518.db
-
-57/57 passed (0 broken, 0 failed, 0 skipped)
-```
-
-As the output shows, our module successfully allows all legitimate actions without denial.
+The contents of this repository are experimental. Review the policy and test
+on an isolated FreeBSD system before deploying it.

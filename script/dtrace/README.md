@@ -1,16 +1,25 @@
-# DTrace Profiling for Casper Services
+# DTrace experiments
 
-This directory contains the **baseline code** and **DTrace scripts** used to analyze the runtime behavior of Casper services.
+This directory contains baseline programs and DTrace-related experiments for
+observing Casper service behavior. These are not part of the module build or
+an automated correctness test suite.
 
-## Script
+## Trace MAC hook denials
 
-DTrace script to trace any deny of the module.
+On FreeBSD, with the module loaded and DTrace permitted, trace hook return
+values of `EACCES` (13 on FreeBSD):
 
 ```sh
-kola@generic:~/proj/mac_casper/test/performance/macro/sockstat $ sudo dtrace
--n 'fbt:mac_casper::return /arg1 == 13/ { printf("%s returned EACCESS(%d)",
- probefunc, arg1); }'
-Password:
-dtrace: description 'fbt:mac_casper::return ' matched 133 probes
+sudo dtrace -n 'fbt:mac_casper::return /arg1 == 13/ {
+	printf("%s returned EACCES(%d)\n", probefunc, arg1);
+}'
 ```
 
+Probe availability depends on the FreeBSD kernel configuration and whether
+the function is visible to FBT. A trace with no matching probes does not
+establish that the policy has no denials.
+
+The subdirectories contain small baseline programs and Makefiles for selected
+services. Build them on the target FreeBSD system and review the corresponding
+Makefile before running; some binaries link directly against system Casper
+libraries.

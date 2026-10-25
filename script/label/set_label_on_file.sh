@@ -1,18 +1,30 @@
 #!/bin/sh
 
+set -eu
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "error: run this helper as root (for example, with sudo)" >&2
+    exit 1
+fi
+
+if [ ! -x /usr/sbin/setfmac ]; then
+    echo "error: /usr/sbin/setfmac is not available" >&2
+    exit 127
+fi
+
 # ==============================================================================
 # Helper Function: Apply Label
 # Usage: apply_label "label_name" "file_path"
 # ==============================================================================
 apply_label() {
-    LABEL_NAME="$1"
-    FILE_PATH="$2"
+    label_name="$1"
+    file_path="$2"
 
-    if [ -e "$FILE_PATH" ]; then
-        echo "Setting casper/${LABEL_NAME} on ${FILE_PATH}"
-        /usr/sbin/setfmac "casper/${LABEL_NAME}" "$FILE_PATH"
+    if [ -e "$file_path" ]; then
+        echo "Setting casper/${label_name} on ${file_path}"
+        /usr/sbin/setfmac "casper/${label_name}" "$file_path"
     else
-        echo "Skipping ${FILE_PATH} (File not found)"
+        echo "Skipping ${file_path} (file not found)"
     fi
 }
 

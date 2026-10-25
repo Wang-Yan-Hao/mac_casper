@@ -14,23 +14,32 @@ rcvar="casper_label_enable"
 start_cmd="casper_label_start"
 rc_info="YES"
 
-# ==========================================================
-# 你的核心邏輯函數
-# ==========================================================
+# Apply file labels after the MAC policy is loaded.
 apply_label() {
-    LABEL_NAME="$1"
-    FILE_PATH="$2"
+    label_name="$1"
+    file_path="$2"
 
-    if [ -e "$FILE_PATH" ]; then
-        echo "Setting casper/${LABEL_NAME} on ${FILE_PATH}"
-        /usr/sbin/setfmac "casper/${LABEL_NAME}" "$FILE_PATH"
+    if [ -e "$file_path" ]; then
+        echo "Setting casper/${label_name} on ${file_path}"
+        /usr/sbin/setfmac "casper/${label_name}" "$file_path"
     else
-        echo "Skipping ${FILE_PATH} (File not found)"
+        echo "Skipping ${file_path} (file not found)"
     fi
 }
 
-casper_label_start()
-{
+casper_label_start() (
+    set -e
+
+    if [ "$(id -u)" -ne 0 ]; then
+        echo "error: casper_label must run as root" >&2
+        return 1
+    fi
+
+    if [ ! -x /usr/sbin/setfmac ]; then
+        echo "error: /usr/sbin/setfmac is not available" >&2
+        return 1
+    fi
+
     echo "Casper MAC: Applying labels to system files..."
     logger -t "casper_label" "Casper MAC: Applying labels to system files..."
 
@@ -56,13 +65,13 @@ casper_label_start()
     # --- SYSLOG / Time ---
     apply_label "sys_time"      "/etc/localtime"
 
-    # 這裡是最關鍵的 socket 標記，因為有 REQUIRE: syslogd，所以這些檔案一定存在
+    # Runtime log sockets may not exist yet; apply_label skips absent paths.
     apply_label "sys_log"       "/var/run/log"
     apply_label "sys_log"       "/var/run/logpriv"
     apply_label "sys_log"       "/dev/console"
 
     echo "Casper MAC: Done."
-}
+)
 
 # ==========================================================
 # 載入 RC 設定並執行
