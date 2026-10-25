@@ -10,9 +10,9 @@ casper_mpo_inpcb_check_visible_t(struct ucred *cred, struct inpcb *inp,
 		return (0);
 
 	if (obj->type == SUB_DNS || obj->type == SUB_NET ||
-		obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
-		obj->type == SUB_NETDB || obj->type == SUB_PWD ||
-		obj->type == SUB_SYSLOG)
+	    obj->type == SUB_FILEARGS || obj->type == SUB_GRP ||
+	    obj->type == SUB_NETDB || obj->type == SUB_PWD ||
+	    obj->type == SUB_SYSLOG)
 		return (EACCES);
 
 	return (0);
